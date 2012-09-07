@@ -18,8 +18,7 @@ setup(
     description='Python client for Cluster of Redis key-value store',
     long_description=long_description,
     url='http://github.com/salimane/rediscluster-py',
-    download_url=('http://cloud.github.com/downloads/salimane/'
-                  'rediscluster-py/rediscluster-%s.tar.gz' % __version__),
+    download_url=('http://pypi.python.org/packages/source/r/rediscluster/rediscluster-%s.tar.gz' % __version__),
     install_requires=[
         'redis>=2.4.0',
         'hiredis',

@@ -2,7 +2,7 @@ from distutils.version import StrictVersion
 import unittest
 import datetime
 import time
-import config
+from tests import config
 import binascii
 
 from rediscluster._compat import (unichr, u, b, ascii_letters, iteritems, dictkeys,

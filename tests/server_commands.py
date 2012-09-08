@@ -143,7 +143,7 @@ class ServerCommandsTestCase(unittest.TestCase):
         raise unittest.SkipTest()
       except AttributeError:
         return
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
           try:
@@ -229,7 +229,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.getbit('a', 5), True)
 
     def test_bitcount(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
           try:
@@ -255,7 +255,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
 
     def test_bitop_not_empty_string(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
             try:
@@ -268,7 +268,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.get('r'), None)
 
     def test_bitop_not(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
             try:
@@ -285,7 +285,7 @@ class ServerCommandsTestCase(unittest.TestCase):
           correct)
 
     def test_bitop_not_in_place(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
             try:
@@ -302,7 +302,7 @@ class ServerCommandsTestCase(unittest.TestCase):
           correct)
 
     def test_bitop_single_string(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
             try:
@@ -320,7 +320,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.get('res3'), test_str)
 
     def test_bitop_string_operands(self):
-      for info in self.client.info().itervalues():
+      for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
             try:
@@ -397,7 +397,7 @@ class ServerCommandsTestCase(unittest.TestCase):
         
     def test_type(self):
       self.assertEquals(self.client.type('a'), b('none'))
-      self.client.set('a',  '1')
+      self.client.set('a', '1')
       self.assertEquals(self.client.type('a'), b('string'))
       self.client.delete('a')
       self.client.lpush('a', '1')
@@ -512,7 +512,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key
       self.assertEquals(self.client.llen('a'), 0)
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.llen, 'a')
       self.client.delete('a')
       # real logic
@@ -523,7 +523,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key
       self.assertEquals(self.client.lpop('a'), None)
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.lpop, 'a')
       self.client.delete('a')
       # real logic
@@ -535,7 +535,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_lpush(self):
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.lpush, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -547,7 +547,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_lpushx(self):
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.lpushx, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -563,7 +563,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key
       self.assertEquals(self.client.lrange('a', 0, 1), [])
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.lrange, 'a', 0, 1)
       self.client.delete('a')
       # real logic
@@ -579,7 +579,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key
       self.assertEquals(self.client.lrem('a', 0, 'foo'), 0)
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.lrem, 'a', 0, 'b')
       self.client.delete('a')
       # real logic
@@ -613,7 +613,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key -- TODO: Not sure why this is actually true.
       self.assert_(self.client.ltrim('a', 0, 2))
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.ltrim, 'a', 0, 2)
       self.client.delete('a')
       # real logic
@@ -625,7 +625,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # no key
       self.assertEquals(self.client.rpop('a'), None)
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.rpop, 'a')
       self.client.delete('a')
       # real logic
@@ -669,7 +669,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_rpush(self):
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.rpush, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -681,7 +681,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_rpushx(self):
       # key is not a list
-      self.client.set('a',  'b')
+      self.client.set('a', 'b')
       self.assertRaises(rediscluster.ResponseError, self.client.rpushx, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -700,7 +700,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_sadd(self):
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.sadd, 'a', 'a1')
       self.client.delete('a')
       # real logic
@@ -710,7 +710,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_scard(self):
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.scard, 'a')
       self.client.delete('a')
       # real logic
@@ -789,7 +789,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_sismember(self):
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.sismember, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -801,7 +801,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_smembers(self):
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.smembers, 'a')
       self.client.delete('a')
       # set doesn't exist
@@ -821,7 +821,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.make_set('b', ['b1', 'b2'])
       self.assertEquals(self.client.smove('a', 'b', 'a1'), 0)
       # src key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.smove,
           'a', 'b', 'a1')
@@ -846,7 +846,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # key is not set
       self.assertEquals(self.client.spop('a'), None)
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.spop, 'a')
       self.client.delete('a')
       # real logic
@@ -860,7 +860,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # key is not set
       self.assertEquals(self.client.srandmember('a'), None)
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.srandmember, 'a')
       self.client.delete('a')
       # real logic
@@ -871,7 +871,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # key is not set
       self.assertEquals(self.client.srem('a', 'a'), False)
       # key is not a set
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.srem, 'a', 'a')
       self.client.delete('a')
       # real logic
@@ -930,7 +930,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zcard(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zcard, 'a')
       self.client.delete('a')
       # real logic
@@ -939,7 +939,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zcount(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zcount, 'a', 0, 0)
       self.client.delete('a')
       # real logic
@@ -950,7 +950,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zincrby(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zincrby, 'a', 'a1')
       self.client.delete('a')
       # real logic
@@ -994,7 +994,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrange(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zrange, 'a', 0, 1)
       self.client.delete('a')
       # real logic
@@ -1017,7 +1017,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrangebyscore(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.zrangebyscore,
           'a', 0, 1)
@@ -1039,7 +1039,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrank(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zrank, 'a', 'a4')
       self.client.delete('a')
       # real logic
@@ -1054,7 +1054,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrem(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zrem, 'a', 'a1')
       self.client.delete('a')
       # real logic
@@ -1066,7 +1066,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zremrangebyrank(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.zremrangebyscore,
           'a', 0, 1)
@@ -1078,7 +1078,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zremrangebyscore(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.zremrangebyscore,
           'a', 0, 1)
@@ -1092,7 +1092,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrevrange(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.zrevrange,
           'a', 0, 1)
@@ -1112,7 +1112,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrevrangebyscore(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(
           rediscluster.ResponseError, self.client.zrevrangebyscore,
           'a', 0, 1)
@@ -1135,7 +1135,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zrevrank(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zrevrank, 'a', 'a4')
       self.client.delete('a')
       # real logic
@@ -1149,7 +1149,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_zscore(self):
       # key is not a zset
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.zscore, 'a', 'a1')
       self.client.delete('a')
       # real logic
@@ -1218,7 +1218,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hget_and_hset(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hget, 'a', 'a1')
       self.client.delete('a')
       # no key
@@ -1293,7 +1293,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hdel(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hdel, 'a', 'a1')
       self.client.delete('a')
       # no key
@@ -1306,7 +1306,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hexists(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hexists, 'a', 'a1')
       self.client.delete('a')
       # no key
@@ -1320,7 +1320,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hgetall(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hgetall, 'a')
       self.client.delete('a')
       # no key
@@ -1333,7 +1333,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hincrby(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hincrby, 'a', 'a1')
       self.client.delete('a')
       # no key should create the hash and incr the key's value to 1
@@ -1342,7 +1342,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.hincrby('a', 'a1'), 2)
       self.assertEquals(self.client.hincrby('a', 'a1', amount=2), 4)
       # negative values decrement
-      self.assertEquals(self.client.hincrby('a', 'a1', amount=-3), 1)
+      self.assertEquals(self.client.hincrby('a', 'a1', amount= -3), 1)
       # hash that exists, but key that doesn't
       self.assertEquals(self.client.hincrby('a', 'a2', amount=3), 3)
       # finally a key that's not an int
@@ -1367,7 +1367,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hlen(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hlen, 'a')
       self.client.delete('a')
       # no key
@@ -1380,7 +1380,7 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_hvals(self):
       # key is not a hash
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.hvals, 'a')
       self.client.delete('a')
       # no key
@@ -1403,7 +1403,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       # key is not set
       self.assertEquals(self.client.sort('a'), [])
       # key is a string value
-      self.client.set('a',  'a')
+      self.client.set('a', 'a')
       self.assertRaises(rediscluster.ResponseError, self.client.sort, 'a')
       self.client.delete('a')
 
@@ -1573,9 +1573,9 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertTrue(self.client.set(' \r\n\t\x07\x13 ', '789'))
       self.assertEqual(self.client.get(' \r\n\t\x07\x13 '), b('789'))
 
-      #self.assertTrue(self.client.delete(' foo bar '))
-      #self.assertTrue(self.client.delete(' foo\r\nbar\r\n '))
-      #self.assertTrue(self.client.delete(' \r\n\t\x07\x13 '))
+      self.assertTrue(self.client.delete(' foo bar '))
+      self.assertTrue(self.client.delete(' foo\r\nbar\r\n '))
+      self.assertTrue(self.client.delete(' \r\n\t\x07\x13 '))
       
     def test_binary_lists(self):
       try:

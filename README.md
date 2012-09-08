@@ -5,7 +5,7 @@ a Python interface to a Cluster of Redis key-value store.
 
 ## Travis CI
 
-Currently, rediscluster-py is being tested via travis ci for python version 2.6, and 2.7: 
+Currently, rediscluster-py is being tested via travis ci for python version 2.6, 2.7 and 3.2: 
 [![Build Status](https://secure.travis-ci.org/salimane/rediscluster-py.png?branch=master)](http://travis-ci.org/salimane/rediscluster-py)
 
 

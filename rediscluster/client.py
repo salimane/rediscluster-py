@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 import redis
 import binascii
+from rediscluster._compat import (b, iteritems, dictvalues)
 
 class StrictRedis:
   """
@@ -42,7 +43,7 @@ class StrictRedis:
     'sunion' : 'sunion', 'sunionstore' : 'sunionstore', 'unsubscribe' : 'unsubscribe', 'unwatch' : 'unwatch',
     'watch' : 'watch', 'zadd' : 'zadd', 'zincrby' : 'zincrby', 'zinterstore' : 'zinterstore',
     'zrem' : 'zrem', 'zremrangebyrank' : 'zremrangebyrank', 'zremrangebyscore' : 'zremrangebyscore', 'zunionstore' : 'zunionstore',
-    'mset' : 'mset','msetnx' : 'msetnx', 'rename' : 'rename', 'renamenx' : 'renamenx',
+    'mset' : 'mset', 'msetnx' : 'msetnx', 'rename' : 'rename', 'renamenx' : 'renamenx',
     'del' : 'del', 'delete' : 'delete', 'ttl' : 'ttl', 'flushall' : 'flushall', 'flushdb' : 'flushdb',
   }
   
@@ -68,7 +69,7 @@ class StrictRedis:
   }
   
   loop_keys = {
-    'keys' : 'keys', 
+    'keys' : 'keys',
     'save' : 'save', 'bgsave' : 'bgsave',
     'bgrewriteaof' : 'bgrewriteaof',
     'dbsize' : 'dbsize', 'info' : 'info',
@@ -84,10 +85,10 @@ class StrictRedis:
 
     self.cluster = cluster
     self.no_servers = len(cluster['master_of'])
-    slaves = cluster['master_of'].values()
+    slaves = dictvalues(cluster['master_of'])
     self.redises = {}
     #connect to all servers
-    for alias, server in cluster['nodes'].iteritems():
+    for alias, server in iteritems(cluster['nodes']):
       try:
         self.__redis = redis.StrictRedis(host=server['host'], port=server['port'], db=db)
         sla = self.__redis.config_get('slaveof')['slaveof']
@@ -102,7 +103,7 @@ class StrictRedis:
         except Exception as e:
           #if node is slave and is down, replace its connection with its master's
           try:
-            ms = [k for k, v in cluster['master_of'].iteritems() if v == alias and sla != ''][0]
+            ms = [k for k, v in iteritems(cluster['master_of']) if v == alias and sla != ''][0]
           except IndexError as ie:
             ms = None
             
@@ -120,7 +121,7 @@ class StrictRedis:
           else:
             raise Exception("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
 
-      self.redises[alias] =  self.__redis
+      self.redises[alias] = self.__redis
     
 
   def __getattr__(self, name, *args, **kwargs):
@@ -143,7 +144,7 @@ class StrictRedis:
           args[0] = args[0][1]
           
         #get the node number
-        node = str((abs(binascii.crc32(hkey) & 0xffffffff) % self.no_servers) + 1)
+        node = str((abs(binascii.crc32(b(hkey)) & 0xffffffff) % self.no_servers) + 1)
         redisent = self.redises[self.cluster['default_node']]
         if name in StrictRedis.write_keys:
           redisent = self.redises['node_' + node]
@@ -155,7 +156,7 @@ class StrictRedis:
 
       else:
         result = {}
-        for alias, redisent in self.redises.iteritems():          
+        for alias, redisent in iteritems(self.redises):
           if name in StrictRedis.write_keys and alias not in self.cluster['master_of']:
             res = None
           else:
@@ -169,9 +170,3 @@ class StrictRedis:
         return result
 
     return function
-  
-  
-  
-  
-  
-  

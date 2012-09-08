@@ -8,6 +8,16 @@ try:
 except ImportError:
   from distutils.core import setup
 
+# Work around mbcs bug in distutils for py3k.
+# http://bugs.python.org/issue10945
+import codecs
+try:
+  codecs.lookup('mbcs')
+except LookupError:
+  ascii = codecs.lookup('ascii')
+func = lambda name, enc = ascii: {True: enc}.get(name == 'mbcs')
+codecs.register(func)
+
 f = open(os.path.join(os.path.dirname(__file__), 'README.md'))
 long_description = f.read()
 f.close()

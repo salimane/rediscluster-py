@@ -3,6 +3,17 @@ import redis
 import binascii
 from rediscluster._compat import (b, iteritems, dictvalues)
 
+from redis.exceptions import (
+    AuthenticationError,
+    ConnectionError,
+    DataError,
+    InvalidResponse,
+    PubSubError,
+    RedisError,
+    ResponseError,
+    WatchError,
+)
+
 class StrictRedis:
   """
   Implementation of the Redis Cluster Client using redis.StrictRedis
@@ -13,7 +24,7 @@ class StrictRedis:
   """
   
   read_keys = {
-    'debug' : 'debug', 'object' : 'object', 'getbit' : 'getbit',
+    'debug' : 'debug', 'getbit' : 'getbit',
     'get' : 'get', 'getrange' : 'getrange', 'hget' : 'hget',
     'hgetall' : 'hgetall', 'hkeys' : 'hkeys', 'hlen' : 'hlen', 'hmget' : 'hmget',
     'hvals' : 'hvals', 'lindex' : 'lindex', 'llen' : 'llen',
@@ -23,7 +34,7 @@ class StrictRedis:
     'zcard' : 'zcard', 'zcount' : 'zcount', 'zrange' : 'zrange', 'zrangebyscore' : 'zrangebyscore',
     'zrank' : 'zrank', 'zrevrange' : 'zrevrange', 'zrevrangebyscore' : 'zrevrangebyscore',
     'zrevrank' : 'zrevrank', 'zscore' : 'zscore',
-    'mget' : 'mget', 'bitcount' : 'bitcount'
+    'mget' : 'mget', 'bitcount' : 'bitcount', 'echo' : 'echo', 'debug_object' : 'debug_object'
   }
   
   write_keys = {
@@ -48,24 +59,20 @@ class StrictRedis:
   }
   
   dont_hash = {
-    'auth' : 'auth', 'config' : 'config',
-    'monitor' : 'monitor', 'quit' : 'quit',
-    'randomkey' : 'randomkey', 'shutdown' : 'shutdown',
-    'slaveof' : 'slaveof', 'slowlog' : 'slowlog', 'sync' : 'sync',
-    'flushall' : 'flushall', 'flushdb' : 'flushdb',
-    'discard' : 'discard', 'echo' : 'echo', 'exec' : 'exec', 'multi' : 'multi',
-    'config_set' : 'config_set', 'config_get' : 'config_get'
+    'auth' : 'auth', 'monitor' : 'monitor', 'quit' : 'quit',
+     'shutdown' : 'shutdown', 'slaveof' : 'slaveof', 'slowlog' : 'slowlog', 'sync' : 'sync',
+    'discard' : 'discard', 'exec' : 'exec', 'multi' : 'multi',
   }
   
   tag_keys = {
-    'sinter' : 'sinter', 'sdiff' : 'sdiff', 'sdiffstore' : 'sdiffstore', 'sinterstore' : 'sinterstore',
-    'smove' : 'smove', 'sunion' : 'sunion', 'sunionstore' : 'sunionstore',
-    'zinterstore' : 'zinterstore', 'zunionstore' : 'zunionstore'
-  }
-  
-  banned_keys = {
-    'mget' : 'mget',
-    'mset' : 'mset', 'msetnx' : 'msetnx', 'rename' : 'rename', 'renamenx' : 'renamenx',
+    'mget' : 'mget', 'rename' : 'rename', 'renamenx' : 'renamenx',
+    'mset' : 'mset', 'msetnx' : 'msetnx',
+    'brpoplpush' : 'brpoplpush', 'rpoplpush' : 'rpoplpush',
+    'sdiff' : 'sdiff', 'sdiffstore' : 'sdiffstore',
+    'sinter' : 'sinter', 'sinterstore' : 'sinterstore', 
+    'sunion' : 'sunion', 'sunionstore' : 'sunionstore', 
+    'smove' : 'smove', 'zinterstore' : 'zinterstore', 
+    'zunionstore' : 'zunionstore', 
   }
   
   loop_keys = {
@@ -76,10 +83,12 @@ class StrictRedis:
     'lastsave' : 'lastsave', 'ping' : 'ping',
     'flushall' : 'flushall', 'flushdb' : 'flushdb',
     'randomkey' : 'randomkey', 'sync' : 'sync',
+    'config_set' : 'config_set', 'config_get' : 'config_get',
+    'time' : 'time'
   }
   
-  def __init__(self, cluster = {}, db = 0):
-    #die when wrong server array
+  def __init__(self, cluster={}, db=0):
+    #raise exception when wrong server hash
     if 'nodes' not in cluster or 'master_of' not in cluster:
       raise Exception("rediscluster: Please set a correct array of redis cluster.")
 
@@ -93,17 +102,18 @@ class StrictRedis:
         self.__redis = redis.StrictRedis(host=server['host'], port=server['port'], db=db)
         sla = self.__redis.config_get('slaveof')['slaveof']
         if alias in slaves and sla == '':
-          raise Exception("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
+          raise DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
       except Exception as e:
         try:
           self.__redis = redis.StrictRedis(host=server['host'], port=server['port'], db=db)
           sla = self.__redis.config_get('slaveof')['slaveof']
           if alias in slaves and sla == '':
-            raise Exception("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
+            raise DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
         except Exception as e:
           #if node is slave and is down, replace its connection with its master's
           try:
-            ms = [k for k, v in iteritems(cluster['master_of']) if v == alias and sla != ''][0]
+            ms = [k for k, v in iteritems(cluster['master_of'])
+                  if v == alias and (sla != '' or cluster['nodes'][k]['host'] + str(cluster['nodes'][k]['port']) == cluster['nodes'][v]['host'] + str(cluster['nodes'][v]['port']))][0]
           except IndexError as ie:
             ms = None
             
@@ -116,10 +126,10 @@ class StrictRedis:
                 self.__redis = redis.StrictRedis(host=cluster['nodes'][ms]['host'], port=cluster['nodes'][ms]['port'], db=db)
                 self.__redis.info()
               except Exception as e:
-                raise Exception("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
+                raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
       
           else:
-            raise Exception("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
+            raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
 
       self.redises[alias] = self.__redis
     
@@ -132,16 +142,20 @@ class StrictRedis:
     """
     def function(*args, **kwargs):
       if name not in StrictRedis.loop_keys:
-        #trigger error msg on banned keys unless u're using it with tagged keys
-        if name in StrictRedis.banned_keys and not isinstance(args[0], list) :
-          raise Exception("rediscluster: Command %s Not Supported (each key name has its own node)" % name)
+        if name in StrictRedis.tag_keys and not isinstance(args[0], list) :
+            try:
+              return getattr(self, 'rc_'+name)(*args, **kwargs)
+            except AttributeError as ae:
+              raise DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)       
 
         #get the hash key depending on tags or not
         hkey = args[0]
         #take care of tagged key names for forcing multiple keys on the same node, e.g. r.set(['userinfo', "age:uid"], value)
         if isinstance(args[0], list) :
           hkey = args[0][0]
-          args[0] = args[0][1]
+          L = list(args)
+          L[0] = args[0][1]
+          args = tuple(L)
           
         #get the node number
         node = str((abs(binascii.crc32(b(hkey)) & 0xffffffff) % self.no_servers) + 1)
@@ -170,3 +184,109 @@ class StrictRedis:
         return result
 
     return function
+
+
+  def object (self, infotype, key):
+    "Return the encoding, idletime, or refcount about the key"
+    redisent = self.redises[self.cluster['master_of']['node_' + str((abs(binascii.crc32(b(key)) & 0xffffffff) % self.no_servers) + 1)]]
+    return getattr(redisent, 'object')(infotype, key)
+
+  def rc_brpoplpush(self, src, dst, timeout=0):
+    """
+    Pop a value off the tail of ``src``, push it on the head of ``dst``
+    and then return it.
+
+    This command blocks until a value is in ``src`` or until ``timeout``
+    seconds elapse, whichever is first. A ``timeout`` value of 0 blocks
+    forever.
+    Not atomic
+    """
+    rpop = self.brpop(src, timeout)
+    if rpop is not None:
+      self.lpush(dst, rpop[1])
+      return rpop[1]
+    return None
+
+  def rc_rpoplpush(self, src, dst):
+    """
+    RPOP a value off of the ``src`` list and LPUSH it
+    on to the ``dst`` list.  Returns the value.
+    """
+    rpop = self.rpop(src)
+    if rpop is not None:
+      self.lpush(dst, rpop)
+      return rpop
+    return None
+
+  def rc_sdiff(self, src, *args):
+    """
+    Returns the members of the set resulting from the difference between
+    the first set and all the successive sets.
+    """
+    src_set = self.smembers(src)
+    if src_set is not set([]):
+      for key in args:
+        src_set.difference_update(self.smembers(key))
+    return src_set
+
+  def rc_sdiffstore(self, dst, src, *args):
+    """
+    Store the difference of sets ``src``,  ``args`` into a new
+    set named ``dest``.  Returns the number of keys in the new set.
+    """
+    result = self.sdiff(src, *args)
+    if result is not set([]):
+      return self.sadd(dst, *list(result))
+    return 0
+
+  def rc_sinter(self, src, *args):
+    """
+    Returns the members of the set resulting from the difference between
+    the first set and all the successive sets.
+    """
+    src_set = self.smembers(src)
+    if src_set is not set([]):
+      for key in args:
+        src_set.intersection_update(self.smembers(key))
+    return src_set
+
+  def rc_sinterstore(self, dst, src, *args):
+    """
+    Store the difference of sets ``src``,  ``args`` into a new
+    set named ``dest``.  Returns the number of keys in the new set.
+    """
+    result = self.sinter(src, *args)
+    if result is not set([]):
+      return self.sadd(dst, *list(result))
+    return 0
+
+  def rc_smove(self, src, dst, value):
+    """
+    Move ``value`` from set ``src`` to set ``dst``
+    not atomic
+    """
+    if self.srem(src, value):
+      return bool(self.sadd(dst, value))
+    return False
+
+  def rc_sunion(self, src, *args):
+    """
+    Returns the members of the set resulting from the union between
+    the first set and all the successive sets.
+    """
+    src_set = self.smembers(src)
+    if src_set is not set([]):
+      for key in args:
+        src_set.update(self.smembers(key))
+    return src_set
+
+  def rc_sunionstore(self, dst, src, *args):
+    """
+    Store the union of sets ``src``,  ``args`` into a new
+    set named ``dest``.  Returns the number of keys in the new set.
+    """
+    result = self.sunion(src, *args)
+    if result is not set([]):
+      return self.sadd(dst, *list(result))
+    return 0
+

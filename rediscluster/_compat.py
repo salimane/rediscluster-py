@@ -30,6 +30,9 @@ else:
     from urllib.parse import urlparse
     from io import BytesIO
     from string import ascii_letters
+    
+    def execfile(file, globals=globals(), locals=locals()):
+      exec(compile(open(file).read(), file, 'exec'), globals, locals)
 
     iteritems = lambda x: x.items()
     dictkeys = lambda x: list(x.keys())
@@ -38,7 +41,7 @@ else:
     nativestr = lambda x: \
         x if isinstance(x, str) else x.decode('utf-8', 'replace')
     u = lambda x: x
-    b = lambda x: x.encode('iso-8859-1')
+    b = lambda x: x.encode('iso-8859-1') if not isinstance(x, bytes) else x
     next = next
     unichr = chr
     imap = map

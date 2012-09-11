@@ -1,7 +1,5 @@
 import unittest
-
 from tests.server_commands import ServerCommandsTestCase
-
 
 try:
   import hiredis

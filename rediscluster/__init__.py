@@ -1,5 +1,5 @@
-from rediscluster.client import StrictRedis
-from redis.exceptions import (
+from rediscluster.client import (
+    StrictRedis,
     AuthenticationError,
     ConnectionError,
     DataError,
@@ -9,11 +9,12 @@ from redis.exceptions import (
     ResponseError,
     WatchError,
 )
+from redis.client import parse_info
 
-__version__ = '0.1.3'
+__version__ = '0.2.0'
 VERSION = tuple(map(int, __version__.split('.')))
 
 __all__ = [
     'StrictRedis', 'RedisError', 'ConnectionError', 'ResponseError', 'AuthenticationError',
-    'InvalidResponse', 'DataError', 'PubSubError', 'WatchError',
+    'InvalidResponse', 'DataError', 'PubSubError', 'WatchError'
 ]

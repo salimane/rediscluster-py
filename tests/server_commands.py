@@ -24,13 +24,12 @@ class ServerCommandsTestCase(unittest.TestCase):
     
     # GENERAL SERVER COMMANDS
     def test_dbsize(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.client.set('a', 'foo')
       self.client.set('b', 'foo')
-      self.assertEquals(self.client.dbsize(), 2)
+      sizeno = 0
+      for size in dictvalues(self.client.dbsize()):
+        sizeno += size
+      self.assertEquals(sizeno, 2*self.client.no_servers)
 
     def test_get_and_set(self):
       # get and set can't be tested independently of each other
@@ -64,34 +63,25 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.get('a'), None)
 
     def test_config_get(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      data = self.client.config_get()
-      self.assert_('maxmemory' in data)
-      self.assert_(data['maxmemory'].isdigit())
+      for data in dictvalues(self.client.config_get()):
+        self.assert_('maxmemory' in data)
+        self.assert_(data['maxmemory'].isdigit())
 
     def test_config_set(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      data = self.client.config_get()
-      rdbname = data['dbfilename']
-      self.assert_(self.client.config_set('dbfilename', 'redis_py_test.rdb'))
-      self.assertEquals(
-          self.client.config_get()['dbfilename'],
-          'redis_py_test.rdb'
-      )
-      self.assert_(self.client.config_set('dbfilename', rdbname))
-      self.assertEquals(self.client.config_get()['dbfilename'], rdbname)
+      self.assert_(self.client.config_set('timeout', '868'))
+      for data in dictvalues(self.client.config_get()):
+        self.assertEquals(
+            data['timeout'],
+            '868'
+        )
+      self.assert_(self.client.config_set('timeout', '300'))
+      for data in dictvalues(self.client.config_get()):
+        self.assertEquals(
+            data['timeout'],
+            '300'
+        )
 
     def test_debug_object(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.client.set('a', 'foo')
       debug_info = self.client.debug_object('a')
       self.assert_(len(debug_info) > 0)
@@ -104,45 +94,32 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.echo('foo bar'), b('foo bar'))
         
     def test_info(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-        self.client.set('a', 'foo')
-        self.client.set('b', 'foo')
-        info = self.client.info()
+      self.client.set('a', 'foo')
+      self.client.set('b', 'foo')
+      kno = 0
+      for info in dictvalues(self.client.info()):
         self.assert_(isinstance(info, dict))
-        self.assertEquals(info['db9']['keys'], 2)
+        try:
+          kno += info['db4']['keys']
+        except KeyError:
+          pass
+      self.assertEquals(kno, 2*self.client.no_servers)
 
     def test_lastsave(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      self.assert_(isinstance(self.client.lastsave(), datetime.datetime))
+      for data in dictvalues(self.client.lastsave()):
+        self.assert_(isinstance(data, datetime.datetime))
 
     def test_object(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.client.set('a', 'foo')
       self.assert_(isinstance(self.client.object('refcount', 'a'), int))
       self.assert_(isinstance(self.client.object('idletime', 'a'), int))
       self.assertEquals(self.client.object('encoding', 'a'), b('raw'))
 
     def test_ping(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      self.assertEquals(self.client.ping(), True)
+      for data in dictvalues(self.client.ping()):
+        self.assertEquals(data, True)
 
     def test_time(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       for info in dictvalues(self.client.info()):
         version = info['redis_version']
         if StrictVersion(version) < StrictVersion('2.6.0'):
@@ -150,18 +127,13 @@ class ServerCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
           except AttributeError:
             return
-
-      t = self.client.time()
-      self.assertEquals(len(t), 2)
-      self.assert_(isinstance(t[0], int))
-      self.assert_(isinstance(t[1], int))
+      for t in dictvalues(self.client.time()):
+        self.assertEquals(len(t), 2)
+        self.assert_(isinstance(t[0], int))
+        self.assert_(isinstance(t[1], int))
 
     # KEYS
     def test_append(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # invalid key type
       self.client.rpush('a', 'a1')
       self.assertRaises(rediscluster.ResponseError, self.client.append, 'a', 'a1')
@@ -173,10 +145,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.get('a'), b('a1a2'))
 
     def test_getrange(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.client.set('a', 'foo')
       self.assertEquals(self.client.getrange('a', 0, 0), b('f'))
       self.assertEquals(self.client.getrange('a', 0, 2), b('foo'))
@@ -377,24 +345,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.client.set('a', 'abcdef')
       self.assertEquals(self.client.strlen('a'), 6)
 
-    def test_substr(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      # invalid key type
-      self.client.rpush('a', 'a1')
-      self.assertRaises(rediscluster.ResponseError, self.client.substr, 'a', 0)
-      self.client.delete('a')
-      # real logic
-      self.client.set('a', 'abcdefghi')
-      self.assertEquals(self.client.substr('a', 0), b('abcdefghi'))
-      self.assertEquals(self.client.substr('a', 2), b('cdefghi'))
-      self.assertEquals(self.client.substr('a', 3, 5), b('def'))
-      self.assertEquals(self.client.substr('a', 3, -2), b('defgh'))
-      self.client['a'] = 123456  # does substr work with ints?
-      self.assertEquals(self.client.substr('a', 2, -2), b('345'))
-        
     def test_type(self):
       self.assertEquals(self.client.type('a'), b('none'))
       self.client.set('a', '1')
@@ -415,56 +365,47 @@ class ServerCommandsTestCase(unittest.TestCase):
         self.client.rpush(name, i)
     
     def test_blpop(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
+      #CLUSTER
       self.make_list('a', 'ab')
       self.make_list('b', 'cd')
       self.assertEquals(
-          self.client.blpop(['b', 'a'], timeout=1),
+          self.client.blpop('b', timeout=1),
           (b('b'), b('c')))
       self.assertEquals(
-          self.client.blpop(['b', 'a'], timeout=1),
+          self.client.blpop('b', timeout=1),
           (b('b'), b('d')))
       self.assertEquals(
-          self.client.blpop(['b', 'a'], timeout=1),
+          self.client.blpop('a', timeout=1),
           (b('a'), b('a')))
       self.assertEquals(
-          self.client.blpop(['b', 'a'], timeout=1),
+          self.client.blpop('a', timeout=1),
           (b('a'), b('b')))
-      self.assertEquals(self.client.blpop(['b', 'a'], timeout=1), None)
+      self.assertEquals(self.client.blpop('b', timeout=1), None)
+      self.assertEquals(self.client.blpop('a', timeout=1), None)
       self.make_list('c', 'a')
       self.assertEquals(self.client.blpop('c', timeout=1), (b('c'), b('a')))
 
     def test_brpop(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', 'ab')
       self.make_list('b', 'cd')
       self.assertEquals(
-          self.client.brpop(['b', 'a'], timeout=1),
+          self.client.brpop('b', timeout=1),
           (b('b'), b('d')))
       self.assertEquals(
-          self.client.brpop(['b', 'a'], timeout=1),
+          self.client.brpop('b', timeout=1),
           (b('b'), b('c')))
       self.assertEquals(
-          self.client.brpop(['b', 'a'], timeout=1),
+          self.client.brpop('a', timeout=1),
           (b('a'), b('b')))
       self.assertEquals(
-          self.client.brpop(['b', 'a'], timeout=1),
+          self.client.brpop('a', timeout=1),
           (b('a'), b('a')))
-      self.assertEquals(self.client.brpop(['b', 'a'], timeout=1), None)
+      self.assertEquals(self.client.brpop('b', timeout=1), None)
+      self.assertEquals(self.client.brpop('a', timeout=1), None)
       self.make_list('c', 'a')
       self.assertEquals(self.client.brpop('c', timeout=1), (b('c'), b('a')))
 
     def test_brpoplpush(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', '12')
       self.make_list('b', '34')
       self.assertEquals(self.client.brpoplpush('a', 'b'), b('2'))
@@ -476,37 +417,37 @@ class ServerCommandsTestCase(unittest.TestCase):
           [b('1'), b('2'), b('3'), b('4')])
 
     def test_lindex(self):
-        # no key
-        self.assertEquals(self.client.lindex('a', '0'), None)
-        # key is not a list
-        self.client.set('a', 'b')
-        self.assertRaises(rediscluster.ResponseError, self.client.lindex, 'a', '0')
-        self.client.delete('a')
-        # real logic
-        self.make_list('a', 'abc')
-        self.assertEquals(self.client.lindex('a', '0'), b('a'))
-        self.assertEquals(self.client.lindex('a', '1'), b('b'))
-        self.assertEquals(self.client.lindex('a', '2'), b('c'))
+      # no key
+      self.assertEquals(self.client.lindex('a', '0'), None)
+      # key is not a list
+      self.client.set('a', 'b')
+      self.assertRaises(rediscluster.ResponseError, self.client.lindex, 'a', '0')
+      self.client.delete('a')
+      # real logic
+      self.make_list('a', 'abc')
+      self.assertEquals(self.client.lindex('a', '0'), b('a'))
+      self.assertEquals(self.client.lindex('a', '1'), b('b'))
+      self.assertEquals(self.client.lindex('a', '2'), b('c'))
 
     def test_linsert(self):
-        # no key
-        self.assertEquals(self.client.linsert('a', 'after', 'x', 'y'), 0)
-        # key is not a list
-        self.client.set('a', 'b')
-        self.assertRaises(
-            rediscluster.ResponseError, self.client.linsert, 'a', 'after', 'x', 'y'
-        )
-        self.client.delete('a')
-        # real logic
-        self.make_list('a', 'abc')
-        self.assertEquals(self.client.linsert('a', 'after', 'b', 'b1'), 4)
-        self.assertEquals(
-            self.client.lrange('a', 0, -1),
-            [b('a'), b('b'), b('b1'), b('c')])
-        self.assertEquals(self.client.linsert('a', 'before', 'b', 'a1'), 5)
-        self.assertEquals(
-            self.client.lrange('a', 0, -1),
-            [b('a'), b('a1'), b('b'), b('b1'), b('c')])
+      # no key
+      self.assertEquals(self.client.linsert('a', 'after', 'x', 'y'), 0)
+      # key is not a list
+      self.client.set('a', 'b')
+      self.assertRaises(
+          rediscluster.ResponseError, self.client.linsert, 'a', 'after', 'x', 'y'
+      )
+      self.client.delete('a')
+      # real logic
+      self.make_list('a', 'abc')
+      self.assertEquals(self.client.linsert('a', 'after', 'b', 'b1'), 4)
+      self.assertEquals(
+          self.client.lrange('a', 0, -1),
+          [b('a'), b('b'), b('b1'), b('c')])
+      self.assertEquals(self.client.linsert('a', 'before', 'b', 'a1'), 5)
+      self.assertEquals(
+          self.client.lrange('a', 0, -1),
+          [b('a'), b('a1'), b('b'), b('b1'), b('c')])
 
     def test_llen(self):
       # no key
@@ -593,21 +534,21 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.lrange('a', 0, 1), [])
 
     def test_lset(self):
-        # no key
-        self.assertRaises(rediscluster.ResponseError, self.client.lset, 'a', 1, 'b')
-        # key is not a list
-        self.client.set('a', 'b')
-        self.assertRaises(rediscluster.ResponseError, self.client.lset, 'a', 1, 'b')
-        self.client.delete('a')
-        # real logic
-        self.make_list('a', 'abc')
-        self.assertEquals(
-            self.client.lrange('a', 0, 2),
-            [b('a'), b('b'), b('c')])
-        self.assert_(self.client.lset('a', 1, 'd'))
-        self.assertEquals(
-            self.client.lrange('a', 0, 2),
-            [b('a'), b('d'), b('c')])
+      # no key
+      self.assertRaises(rediscluster.ResponseError, self.client.lset, 'a', 1, 'b')
+      # key is not a list
+      self.client.set('a', 'b')
+      self.assertRaises(rediscluster.ResponseError, self.client.lset, 'a', 1, 'b')
+      self.client.delete('a')
+      # real logic
+      self.make_list('a', 'abc')
+      self.assertEquals(
+          self.client.lrange('a', 0, 2),
+          [b('a'), b('b'), b('c')])
+      self.assert_(self.client.lset('a', 1, 'd'))
+      self.assertEquals(
+          self.client.lrange('a', 0, 2),
+          [b('a'), b('d'), b('c')])
     
     def test_ltrim(self):
       # no key -- TODO: Not sure why this is actually true.
@@ -636,10 +577,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.rpop('a'), None)
     
     def test_rpoplpush(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # no src key
       self.make_list('b', ['b1'])
       self.assertEquals(self.client.rpoplpush('a', 'b'), None)
@@ -718,10 +655,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.scard('a'), 3)
       
     def test_sdiff(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
@@ -730,61 +663,49 @@ class ServerCommandsTestCase(unittest.TestCase):
       # real logic
       self.make_set('b', ['b1', 'a2', 'b3'])
       self.assertEquals(
-          self.client.sdiff(['a', 'b']),
+          self.client.sdiff('a', 'b'),
           set([b('a1'), b('a3')]))
 
     def test_sdiffstore(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
       self.assertRaises(
           rediscluster.ResponseError, self.client.sdiffstore,
-          'c', ['a', 'b'])
+          'c', 'a', 'b')
       self.client.delete('b')
       self.make_set('b', ['b1', 'a2', 'b3'])
       # dest key always gets overwritten, even if it's not a set, so don't
       # test for that
       # real logic
-      self.assertEquals(self.client.sdiffstore('c', ['a', 'b']), 2)
+      self.assertEquals(self.client.sdiffstore('c', 'a', 'b'), 2)
       self.assertEquals(self.client.smembers('c'), set([b('a1'), b('a3')]))
 
     def test_sinter(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
-      self.assertRaises(rediscluster.ResponseError, self.client.sinter, ['a', 'b'])
+      self.assertRaises(rediscluster.ResponseError, self.client.sinter, 'a', 'b')
       self.client.delete('b')
       # real logic
       self.make_set('b', ['a1', 'b2', 'a3'])
       self.assertEquals(
-          self.client.sinter(['a', 'b']),
+          self.client.sinter('a', 'b'),
           set([b('a1'), b('a3')]))
 
     def test_sinterstore(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
       self.assertRaises(
           rediscluster.ResponseError, self.client.sinterstore,
-          'c', ['a', 'b'])
+          'c', 'a', 'b')
       self.client.delete('b')
       self.make_set('b', ['a1', 'b2', 'a3'])
       # dest key always gets overwritten, even if it's not a set, so don't
       # test for that
       # real logic
-      self.assertEquals(self.client.sinterstore('c', ['a', 'b']), 2)
+      self.assertEquals(self.client.sinterstore('c', 'a', 'b'), 2)
       self.assertEquals(self.client.smembers('c'), set([b('a1'), b('a3')]))
 
     def test_sismember(self):
@@ -813,6 +734,7 @@ class ServerCommandsTestCase(unittest.TestCase):
           set([b('a'), b('b'), b('c')]))
       
     def test_smove(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
@@ -881,38 +803,30 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.smembers('a'), set([b('a'), b('c')]))
       
     def test_sunion(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
-      self.assertRaises(rediscluster.ResponseError, self.client.sunion, ['a', 'b'])
+      self.assertRaises(rediscluster.ResponseError, self.client.sunion, 'a', 'b')
       self.client.delete('b')
       # real logic
       self.make_set('b', ['a1', 'b2', 'a3'])
       self.assertEquals(
-          self.client.sunion(['a', 'b']),
+          self.client.sunion('a', 'b'),
           set([b('a1'), b('a2'), b('a3'), b('b2')]))
 
     def test_sunionstore(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # some key is not a set
       self.make_set('a', ['a1', 'a2', 'a3'])
       self.client.set('b', 'b')
       self.assertRaises(
           rediscluster.ResponseError, self.client.sunionstore,
-          'c', ['a', 'b'])
+          'c', 'a', 'b')
       self.client.delete('b')
       self.make_set('b', ['a1', 'b2', 'a3'])
       # dest key always gets overwritten, even if it's not a set, so don't
       # test for that
       # real logic
-      self.assertEquals(self.client.sunionstore('c', ['a', 'b']), 4)
+      self.assertEquals(self.client.sunionstore('c', 'a', 'b'), 4)
       self.assertEquals(
           self.client.smembers('c'),
           set([b('a1'), b('a2'), b('a3'), b('b2')]))
@@ -961,6 +875,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.zscore('a', 'a3'), 8.0)
     
     def test_zinterstore(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
@@ -1160,6 +1075,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.zscore('a', 'a4'), None)
       
     def test_zunionstore(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
@@ -1246,49 +1162,29 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEqual(self.client.hget('a', 'a1'), b('1'))
       
     def test_hmset(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       d = {b('a'): b('1'), b('b'): b('2'), b('c'): b('3')}
       self.assert_(self.client.hmset('foo', d))
       self.assertEqual(self.client.hgetall('foo'), d)
       self.assertRaises(rediscluster.DataError, self.client.hmset, 'foo', {})
 
     def test_hmset_empty_value(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       d = {b('a'): b('1'), b('b'): b('2'), b('c'): b('')}
       self.assert_(self.client.hmset('foo', d))
       self.assertEqual(self.client.hgetall('foo'), d)
 
     def test_hmget(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       d = {'a': 1, 'b': 2, 'c': 3}
       self.assert_(self.client.hmset('foo', d))
       self.assertEqual(
-          self.client.hmget('foo', ['a', 'b', 'c']), [b('1'), b('2'), b('3')])
-      self.assertEqual(self.client.hmget('foo', ['a', 'c']), [b('1'), b('3')])
+          self.client.hmget('foo', 'a', 'b', 'c'), [b('1'), b('2'), b('3')])
+      self.assertEqual(self.client.hmget('foo', 'a', 'c'), [b('1'), b('3')])
       # using *args type args
       self.assertEquals(self.client.hmget('foo', 'a', 'c'), [b('1'), b('3')])
 
     def test_hmget_empty(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
-      self.assertEqual(self.client.hmget('foo', ['a', 'b']), [None, None])
+      self.assertEqual(self.client.hmget('foo', 'a', 'b'), [None, None])
 
     def test_hmget_no_keys(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.assertRaises(rediscluster.ResponseError, self.client.hmget, 'foo', [])
 
     def test_hdel(self):
@@ -1396,10 +1292,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       
     # SORT
     def test_sort_bad_key(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       # key is not set
       self.assertEquals(self.client.sort('a'), [])
       # key is a string value
@@ -1408,85 +1300,73 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.client.delete('a')
 
     def test_sort_basic(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', '3214')
       self.assertEquals(
           self.client.sort('a'),
           [b('1'), b('2'), b('3'), b('4')])
 
     def test_sort_limited(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', '3214')
       self.assertEquals(
           self.client.sort('a', start=1, num=2),
           [b('2'), b('3')])
 
     def test_sort_by(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
         return
-      self.client['score:1'] = 8
-      self.client['score:2'] = 3
-      self.client['score:3'] = 5
+      self.client.set('score:1', 8)
+      self.client.set('score:2', 3)
+      self.client.set('score:3', 5)
       self.make_list('a_values', '123')
       self.assertEquals(
           self.client.sort('a_values', by='score:*'),
           [b('2'), b('3'), b('1')])
 
     def test_sort_get(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
         return
-      self.client['user:1'] = 'u1'
-      self.client['user:2'] = 'u2'
-      self.client['user:3'] = 'u3'
+      self.client.set('user:1', 'u1')
+      self.client.set('user:2', 'u2')
+      self.client.set('user:3', 'u3')
       self.make_list('a', '231')
       self.assertEquals(
           self.client.sort('a', get='user:*'),
           [b('u1'), b('u2'), b('u3')])
 
     def test_sort_get_multi(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
         return
-      self.client['user:1'] = 'u1'
-      self.client['user:2'] = 'u2'
-      self.client['user:3'] = 'u3'
+      self.client.set('user:1', 'u1')
+      self.client.set('user:2', 'u2')
+      self.client.set('user:3', 'u3')
       self.make_list('a', '231')
       self.assertEquals(
           self.client.sort('a', get=('user:*', '#')),
           [b('u1'), b('1'), b('u2'), b('2'), b('u3'), b('3')])
 
     def test_sort_desc(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', '231')
       self.assertEquals(
           self.client.sort('a', desc=True),
           [b('3'), b('2'), b('1')])
 
     def test_sort_alpha(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       self.make_list('a', 'ecbda')
       self.assertEquals(
           self.client.sort('a', alpha=True),
           [b('a'), b('b'), b('c'), b('d'), b('e')])
 
     def test_sort_store(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
@@ -1498,6 +1378,7 @@ class ServerCommandsTestCase(unittest.TestCase):
           [b('1'), b('2'), b('3')])
 
     def test_sort_all_options(self):
+      #CLUSTER
       try:
         raise unittest.SkipTest()
       except AttributeError:
@@ -1578,10 +1459,6 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertTrue(self.client.delete(' \r\n\t\x07\x13 '))
       
     def test_binary_lists(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       mapping = {
           b('foo bar'): [b('1'), b('2'), b('3')],
           b('foo\r\nbar\r\n'): [b('4'), b('5'), b('6')],
@@ -1593,8 +1470,7 @@ class ServerCommandsTestCase(unittest.TestCase):
               self.assertTrue(self.client.rpush(key, c))
 
       # check that KEYS returns all the keys as they are
-      self.assertEqual(sorted(self.client.keys('*')),
-                       sorted(dictkeys(mapping)))
+      #self.assertEqual(sorted(self.client.keys('*')), sorted(dictkeys(mapping)))
 
       # check that it is possible to get list content by key name
       for key in dictkeys(mapping):
@@ -1602,10 +1478,6 @@ class ServerCommandsTestCase(unittest.TestCase):
                            mapping[key])
 
     def test_22_info(self):
-      try:
-        raise unittest.SkipTest()
-      except AttributeError:
-        return
       """
       Older Redis versions contained 'allocation_stats' in INFO that
       was the cause of a number of bugs when parsing.
@@ -1634,10 +1506,10 @@ class ServerCommandsTestCase(unittest.TestCase):
              "207=1,208=1,209=1,214=2,215=31,216=78,217=28,218=5,219=2," \
              "220=1,222=1,225=1,227=1,234=1,242=1,250=1,252=1,253=1," \
              ">=256=203"
-      #parsed = parse_info(info)
-      #self.assert_('allocation_stats' in parsed)
-      #self.assert_('6' in parsed['allocation_stats'])
-      #self.assert_('>=256' in parsed['allocation_stats'])
+      parsed = rediscluster.parse_info(info)
+      self.assert_('allocation_stats' in parsed)
+      self.assert_('6' in parsed['allocation_stats'])
+      self.assert_('>=256' in parsed['allocation_stats'])
 
 
     """def test_large_responses(self):

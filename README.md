@@ -53,6 +53,18 @@ From source:
     'bar'
 
 
+##Tagged keys
+
+In order to specify your own hash key (so that related keys can all land on a given node), 
+you pass a list where you’d normally pass a scalar. The first element of the list is the key to use for the hash
+and the second is the real key that should be fetched/modify:
+
+    >>> r.get(["userinfo", "foo"])
+    
+In that case “userinfo” is the hash key but “foo” is still the name of the key that is fetched from the redis node
+that “userinfo” hashes to.
+
+
 ## Information
 
 * Code: `git clone git://github.com/salimane/rediscluster-py.git`

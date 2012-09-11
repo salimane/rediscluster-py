@@ -11,7 +11,7 @@ from rediscluster.client import (
 )
 from redis.client import parse_info
 
-__version__ = '0.2.0'
+__version__ = '0.2.1'
 VERSION = tuple(map(int, __version__.split('.')))
 
 __all__ = [

@@ -1,5 +1,5 @@
-from rediscluster.client import (
-    StrictRedis,
+from rediscluster.client import StrictRedis
+from redis.exceptions import (
     AuthenticationError,
     ConnectionError,
     DataError,

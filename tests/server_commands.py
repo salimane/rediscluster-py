@@ -5,7 +5,7 @@ import time
 from tests import config
 import binascii
 
-from rediscluster._compat import (unichr, u, b, ascii_letters, iteritems, dictkeys,
+from redis._compat import (unichr, u, b, ascii_letters, iteritems, dictkeys,
                            dictvalues)
 
 import rediscluster

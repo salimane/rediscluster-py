@@ -1,18 +1,7 @@
 # -*- coding: UTF-8 -*-
 import redis
 import binascii
-from rediscluster._compat import (b, iteritems, dictvalues)
-
-from redis.exceptions import (
-    AuthenticationError,
-    ConnectionError,
-    DataError,
-    InvalidResponse,
-    PubSubError,
-    RedisError,
-    ResponseError,
-    WatchError,
-)
+from redis._compat import (b, iteritems, dictvalues)
 
 class StrictRedis:
   """
@@ -103,7 +92,7 @@ class StrictRedis:
         self.__redis = redis.StrictRedis(host=server['host'], port=server['port'], db=db)
         sla = self.__redis.config_get('slaveof')['slaveof']
         if alias in slaves and sla == '':
-          raise DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
+          raise redis.DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
       except Exception as e:
         #if node is slave and is down, replace its connection with its master's
         try:
@@ -117,10 +106,10 @@ class StrictRedis:
             self.__redis = redis.StrictRedis(host=cluster['nodes'][ms]['host'], port=cluster['nodes'][ms]['port'], db=db)
             self.__redis.info()
           except Exception as e:
-            raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
+            raise redis.ConnectionError("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
     
         else:
-          raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
+          raise redis.ConnectionError("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
 
       self.redises[alias] = self.__redis
     
@@ -137,7 +126,7 @@ class StrictRedis:
             try:
               return getattr(self, 'rc_'+name)(*args, **kwargs)
             except AttributeError:
-              raise DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)       
+              raise redis.DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)       
 
         #get the hash key depending on tags or not
         hkey = args[0]

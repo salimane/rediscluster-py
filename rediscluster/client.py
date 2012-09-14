@@ -34,7 +34,8 @@ class StrictRedis:
     'zcard' : 'zcard', 'zcount' : 'zcount', 'zrange' : 'zrange', 'zrangebyscore' : 'zrangebyscore',
     'zrank' : 'zrank', 'zrevrange' : 'zrevrange', 'zrevrangebyscore' : 'zrevrangebyscore',
     'zrevrank' : 'zrevrank', 'zscore' : 'zscore',
-    'mget' : 'mget', 'bitcount' : 'bitcount', 'echo' : 'echo', 'debug_object' : 'debug_object'
+    'mget' : 'mget', 'bitcount' : 'bitcount', 'echo' : 'echo', 'debug_object' : 'debug_object',
+    'substr' : 'substr'
   }
   
   write_keys = {
@@ -72,7 +73,7 @@ class StrictRedis:
     'sinter' : 'sinter', 'sinterstore' : 'sinterstore', 
     'sunion' : 'sunion', 'sunionstore' : 'sunionstore', 
     'smove' : 'smove', 'zinterstore' : 'zinterstore', 
-    'zunionstore' : 'zunionstore', 
+    'zunionstore' : 'zunionstore', 'sort' : 'sort'
   }
   
   loop_keys = {
@@ -279,4 +280,34 @@ class StrictRedis:
     if result is not set([]):
       return self.sadd(dst, *list(result))
     return 0
-
+  
+  def rc_mset(self, mapping):
+    "Sets each key in the ``mapping`` dict to its corresponding value"
+    result = True
+    for k, v in iteritems(mapping):
+      result = True and self.set(k, v)
+    return result
+  
+  def rc_msetnx(self, mapping):
+    """
+    Sets each key in the ``mapping`` dict to its corresponding value if
+    none of the keys are already set
+    """    
+    for k, v in iteritems(mapping):
+      if self.exists(k): return False
+    result = True
+    for k, v in iteritems(mapping):
+      result = result and self.set(k, v)
+    return result
+  
+  def rc_mget(self, *args):
+    """
+    Returns a list of values ordered identically to ``*args``
+    """
+    result = []
+    for key in args:
+      result.append(self.get(key))
+    return result
+  
+  
+  

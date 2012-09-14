@@ -21,6 +21,21 @@ class ServerCommandsTestCase(unittest.TestCase):
     def tearDown(self):
       self.client.flushdb()
       #self.client.connection_pool.disconnect()
+      
+    def test_response_callbacks(self):
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
+      self.assertEquals(
+          self.client.response_callbacks,
+          redis.Redis.RESPONSE_CALLBACKS)
+      self.assertNotEquals(
+          id(self.client.response_callbacks),
+          id(redis.Redis.RESPONSE_CALLBACKS))
+      self.client.set_response_callback('GET', lambda x: 'static')
+      self.client.set('a', 'foo')
+      self.assertEquals(self.client.get('a'), 'static')
     
     # GENERAL SERVER COMMANDS
     def test_dbsize(self):
@@ -30,7 +45,7 @@ class ServerCommandsTestCase(unittest.TestCase):
       for size in dictvalues(self.client.dbsize()):
         sizeno += size
       self.assertEquals(sizeno, 2*self.client.no_servers)
-
+      
     def test_get_and_set(self):
       # get and set can't be tested independently of each other
       client = self.get_client()
@@ -322,6 +337,79 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.assertEquals(self.client.get('a'), b('2'))
       self.assertEquals(self.client.incr('a', amount=5), 7)
       self.assertEquals(self.client.get('a'), b('7'))
+      
+    def test_keys(self):
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
+      self.assertEquals(self.client.keys(), [])
+      keys = set([b('test_a'), b('test_b'), b('testc')])
+      for key in keys:
+        self.client.set(key, 1)
+      self.assertEquals(
+          set(self.client.keys(pattern='test_*')),
+          keys - set([b('testc')]))
+      self.assertEquals(set(self.client.keys(pattern='test*')), keys)
+        
+    def test_mget(self):
+      self.assertEquals(self.client.mget('a', 'b'), [None, None])
+      self.client.set('a', '1')
+      self.client.set('b', '2')
+      self.client.set('c', '3')
+      self.assertEquals(
+          self.client.mget('a', 'other', 'b', 'c'),
+          [b('1'), None, b('2'), b('3')])
+
+    def test_mset(self):
+      d = {'a': '1', 'b': '2', 'c': '3'}
+      self.assert_(self.client.mset(d))
+      for k, v in iteritems(d):
+          self.assertEquals(self.client.get(k), b(v))
+
+    def test_msetnx(self):
+      d = {'a': '1', 'b': '2', 'c': '3'}
+      self.assert_(self.client.msetnx(d))
+      d2 = {'a': 'x', 'd': '4'}
+      self.assert_(not self.client.msetnx(d2))
+      for k, v in iteritems(d):
+          self.assertEquals(self.client.get(k), b(v))
+      self.assertEquals(self.client.get('d'), None)
+
+    def test_randomkey(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
+      self.assertEquals(self.client.randomkey(), None)
+      self.client.set('a', '1')
+      self.client.set('b', '2')
+      self.client.set('c', '3')
+      self.assert_(self.client.randomkey() in (b('a'), b('b'), b('c')))
+
+    def test_rename(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
+      self.client.set('a', '1')
+      self.assert_(self.client.rename('a', 'b'))
+      self.assertEquals(self.client.get('a'), None)
+      self.assertEquals(self.client.get('b'), b('1'))
+
+    def test_renamenx(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
+      self.client.set('a', '1')
+      self.client.set('b', '2')
+      self.assert_(not self.client.renamenx('a', 'b'))
+      self.assertEquals(self.client.get('a'), b('1'))
+      self.assertEquals(self.client.get('b'), b('2'))
 
     def test_setex(self):
       self.assertEquals(self.client.setex('a', 60, '1'), True)
@@ -344,6 +432,20 @@ class ServerCommandsTestCase(unittest.TestCase):
     def test_strlen(self):
       self.client.set('a', 'abcdef')
       self.assertEquals(self.client.strlen('a'), 6)
+      
+    def test_substr(self):
+      # invalid key type
+      self.client.rpush('a', 'a1')
+      self.assertRaises(rediscluster.ResponseError, self.client.substr, 'a', 0)
+      self.client.delete('a')
+      # real logic
+      self.client.set('a', 'abcdefghi')
+      self.assertEquals(self.client.substr('a', 0), b('abcdefghi'))
+      self.assertEquals(self.client.substr('a', 2), b('cdefghi'))
+      self.assertEquals(self.client.substr('a', 3, 5), b('def'))
+      self.assertEquals(self.client.substr('a', 3, -2), b('defgh'))
+      self.client.set('a', 123456)  # does substr work with ints?
+      self.assertEquals(self.client.substr('a', 2, -2), b('345'))
 
     def test_type(self):
       self.assertEquals(self.client.type('a'), b('none'))
@@ -1292,6 +1394,11 @@ class ServerCommandsTestCase(unittest.TestCase):
       
     # SORT
     def test_sort_bad_key(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
       # key is not set
       self.assertEquals(self.client.sort('a'), [])
       # key is a string value
@@ -1300,12 +1407,22 @@ class ServerCommandsTestCase(unittest.TestCase):
       self.client.delete('a')
 
     def test_sort_basic(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
       self.make_list('a', '3214')
       self.assertEquals(
           self.client.sort('a'),
           [b('1'), b('2'), b('3'), b('4')])
 
     def test_sort_limited(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
       self.make_list('a', '3214')
       self.assertEquals(
           self.client.sort('a', start=1, num=2),
@@ -1354,12 +1471,22 @@ class ServerCommandsTestCase(unittest.TestCase):
           [b('u1'), b('1'), b('u2'), b('2'), b('u3'), b('3')])
 
     def test_sort_desc(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
       self.make_list('a', '231')
       self.assertEquals(
           self.client.sort('a', desc=True),
           [b('3'), b('2'), b('1')])
 
     def test_sort_alpha(self):
+      #CLUSTER
+      try:
+        raise unittest.SkipTest()
+      except AttributeError:
+        return
       self.make_list('a', 'ecbda')
       self.assertEquals(
           self.client.sort('a', alpha=True),

@@ -11,7 +11,7 @@ from redis.exceptions import (
 )
 from redis.client import parse_info
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 VERSION = tuple(map(int, __version__.split('.')))
 
 __all__ = [

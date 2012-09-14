@@ -3,6 +3,12 @@ rediscluster-py
 
 a Python interface to a Cluster of Redis key-value store.
 
+## Project Goals
+
+The goal is to be a drop in replacement of redis-py when you would like to shard your data into a cluster of redis servers.
+rediscluster-py is based on the awesome [redis-py](https://github.com/andymccurdy/redis-py.git) StrictRedis Api, thus the original api commands
+would work without problems within the context of a cluster of redis servers
+
 ## Travis CI
 
 Currently, rediscluster-py is being tested via travis ci for python version 2.6, 2.7 and 3.2: 

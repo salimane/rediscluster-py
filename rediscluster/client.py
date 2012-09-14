@@ -104,32 +104,22 @@ class StrictRedis:
         if alias in slaves and sla == '':
           raise DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
       except Exception as e:
+        #if node is slave and is down, replace its connection with its master's
         try:
-          self.__redis = redis.StrictRedis(host=server['host'], port=server['port'], db=db)
-          sla = self.__redis.config_get('slaveof')['slaveof']
-          if alias in slaves and sla == '':
-            raise DataError("rediscluster: server %s:%s is not a slave." % (server['host'], server['port']))
-        except Exception as e:
-          #if node is slave and is down, replace its connection with its master's
+          ms = [k for k, v in iteritems(cluster['master_of'])
+                if v == alias and (sla != '' or cluster['nodes'][k]['host'] + str(cluster['nodes'][k]['port']) == cluster['nodes'][v]['host'] + str(cluster['nodes'][v]['port']))][0]
+        except IndexError:
+          ms = None
+          
+        if ms is not None:
           try:
-            ms = [k for k, v in iteritems(cluster['master_of'])
-                  if v == alias and (sla != '' or cluster['nodes'][k]['host'] + str(cluster['nodes'][k]['port']) == cluster['nodes'][v]['host'] + str(cluster['nodes'][v]['port']))][0]
-          except IndexError as ie:
-            ms = None
-            
-          if ms is not None:
-            try:
-              self.__redis = redis.StrictRedis(host=cluster['nodes'][ms]['host'], port=cluster['nodes'][ms]['port'], db=db)
-              self.__redis.info()
-            except Exception as e:
-              try:
-                self.__redis = redis.StrictRedis(host=cluster['nodes'][ms]['host'], port=cluster['nodes'][ms]['port'], db=db)
-                self.__redis.info()
-              except Exception as e:
-                raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
-      
-          else:
-            raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
+            self.__redis = redis.StrictRedis(host=cluster['nodes'][ms]['host'], port=cluster['nodes'][ms]['port'], db=db)
+            self.__redis.info()
+          except Exception as e:
+            raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (cluster['nodes'][ms]['host'], cluster['nodes'][ms]['port'], e))
+    
+        else:
+          raise ConnectionError("rediscluster cannot connect to: %s:%s %s" % (server['host'], server['port'], e))
 
       self.redises[alias] = self.__redis
     
@@ -145,7 +135,7 @@ class StrictRedis:
         if name in StrictRedis.tag_keys and not isinstance(args[0], list) :
             try:
               return getattr(self, 'rc_'+name)(*args, **kwargs)
-            except AttributeError as ae:
+            except AttributeError:
               raise DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)       
 
         #get the hash key depending on tags or not

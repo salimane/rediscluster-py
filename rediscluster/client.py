@@ -166,6 +166,24 @@ class StrictRedis:
     return function
 
 
+  def __setitem__(self, name, value):
+    "Set the value at key ``name`` to ``value``"
+    return self.set(name, value)
+
+  def __getitem__(self, name):
+    """
+    Return the value at key ``name``, raises a KeyError if the key
+    doesn't exist.
+    """
+    value = self.get(name)
+    if value:
+      return value
+    raise KeyError(name)
+
+  def __delitem__(self, *names):
+    "Delete one or more keys specified by ``names``"
+    return self.delete(*names)
+
   def object (self, infotype, key):
     "Return the encoding, idletime, or refcount about the key"
     redisent = self.redises[self.cluster['master_of']['node_' + str((abs(binascii.crc32(b(key)) & 0xffffffff) % self.no_servers) + 1)]]

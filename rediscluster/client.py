@@ -12,7 +12,7 @@ class StrictRedis:
   
   """
   
-  read_keys = {
+  _read_keys = {
     'debug' : 'debug', 'getbit' : 'getbit',
     'get' : 'get', 'getrange' : 'getrange', 'hget' : 'hget',
     'hgetall' : 'hgetall', 'hkeys' : 'hkeys', 'hlen' : 'hlen', 'hmget' : 'hmget',
@@ -27,7 +27,7 @@ class StrictRedis:
     'substr' : 'substr'
   }
   
-  write_keys = {
+  _write_keys = {
     'append' : 'append', 'blpop' : 'blpop', 'brpop' : 'brpop', 'brpoplpush' : 'brpoplpush',
     'decr' : 'decr', 'decrby' : 'decrby', 'del' : 'del', 'exists' : 'exists', 'hexists' : 'hexists',
     'expire' : 'expire', 'expireat' : 'expireat', 'getset' : 'getset', 'hdel' : 'hdel',
@@ -48,24 +48,24 @@ class StrictRedis:
     'del' : 'del', 'delete' : 'delete', 'ttl' : 'ttl', 'flushall' : 'flushall', 'flushdb' : 'flushdb',
   }
   
-  dont_hash = {
+  _dont_hash = {
     'auth' : 'auth', 'monitor' : 'monitor', 'quit' : 'quit',
      'shutdown' : 'shutdown', 'slaveof' : 'slaveof', 'slowlog' : 'slowlog', 'sync' : 'sync',
     'discard' : 'discard', 'exec' : 'exec', 'multi' : 'multi',
   }
   
-  tag_keys = {
+  _tag_keys = {
     'mget' : 'mget', 'rename' : 'rename', 'renamenx' : 'renamenx',
     'mset' : 'mset', 'msetnx' : 'msetnx',
     'brpoplpush' : 'brpoplpush', 'rpoplpush' : 'rpoplpush',
     'sdiff' : 'sdiff', 'sdiffstore' : 'sdiffstore',
-    'sinter' : 'sinter', 'sinterstore' : 'sinterstore', 
-    'sunion' : 'sunion', 'sunionstore' : 'sunionstore', 
-    'smove' : 'smove', 'zinterstore' : 'zinterstore', 
+    'sinter' : 'sinter', 'sinterstore' : 'sinterstore',
+    'sunion' : 'sunion', 'sunionstore' : 'sunionstore',
+    'smove' : 'smove', 'zinterstore' : 'zinterstore',
     'zunionstore' : 'zunionstore', 'sort' : 'sort'
   }
   
-  loop_keys = {
+  _loop_keys = {
     'keys' : 'keys',
     'save' : 'save', 'bgsave' : 'bgsave',
     'bgrewriteaof' : 'bgrewriteaof',
@@ -121,12 +121,12 @@ class StrictRedis:
     - tuple args of supplied arguments to the command.  
     """
     def function(*args, **kwargs):
-      if name not in StrictRedis.loop_keys:
-        if name in StrictRedis.tag_keys and not isinstance(args[0], list) :
+      if name not in StrictRedis._loop_keys:
+        if name in StrictRedis._tag_keys and not isinstance(args[0], list) :
             try:
-              return getattr(self, 'rc_'+name)(*args, **kwargs)
+              return getattr(self, '_rc_' + name)(*args, **kwargs)
             except AttributeError:
-              raise redis.DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)       
+              raise redis.DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)
 
         #get the hash key depending on tags or not
         hkey = args[0]
@@ -140,9 +140,9 @@ class StrictRedis:
         #get the node number
         node = str((abs(binascii.crc32(b(hkey)) & 0xffffffff) % self.no_servers) + 1)
         redisent = self.redises[self.cluster['default_node']]
-        if name in StrictRedis.write_keys:
+        if name in StrictRedis._write_keys:
           redisent = self.redises['node_' + node]
-        elif name in StrictRedis.read_keys:
+        elif name in StrictRedis._read_keys:
           redisent = self.redises[self.cluster['master_of']['node_' + node]]
   
         #Execute the command on the server    
@@ -151,7 +151,7 @@ class StrictRedis:
       else:
         result = {}
         for alias, redisent in iteritems(self.redises):
-          if name in StrictRedis.write_keys and alias not in self.cluster['master_of']:
+          if name in StrictRedis._write_keys and alias not in self.cluster['master_of']:
             res = None
           else:
             res = getattr(redisent, name)(*args, **kwargs)
@@ -171,7 +171,7 @@ class StrictRedis:
     redisent = self.redises[self.cluster['master_of']['node_' + str((abs(binascii.crc32(b(key)) & 0xffffffff) % self.no_servers) + 1)]]
     return getattr(redisent, 'object')(infotype, key)
 
-  def rc_brpoplpush(self, src, dst, timeout=0):
+  def _rc_brpoplpush(self, src, dst, timeout=0):
     """
     Pop a value off the tail of ``src``, push it on the head of ``dst``
     and then return it.
@@ -187,7 +187,7 @@ class StrictRedis:
       return rpop[1]
     return None
 
-  def rc_rpoplpush(self, src, dst):
+  def _rc_rpoplpush(self, src, dst):
     """
     RPOP a value off of the ``src`` list and LPUSH it
     on to the ``dst`` list.  Returns the value.
@@ -198,7 +198,7 @@ class StrictRedis:
       return rpop
     return None
 
-  def rc_sdiff(self, src, *args):
+  def _rc_sdiff(self, src, *args):
     """
     Returns the members of the set resulting from the difference between
     the first set and all the successive sets.
@@ -209,7 +209,7 @@ class StrictRedis:
         src_set.difference_update(self.smembers(key))
     return src_set
 
-  def rc_sdiffstore(self, dst, src, *args):
+  def _rc_sdiffstore(self, dst, src, *args):
     """
     Store the difference of sets ``src``,  ``args`` into a new
     set named ``dest``.  Returns the number of keys in the new set.
@@ -219,7 +219,7 @@ class StrictRedis:
       return self.sadd(dst, *list(result))
     return 0
 
-  def rc_sinter(self, src, *args):
+  def _rc_sinter(self, src, *args):
     """
     Returns the members of the set resulting from the difference between
     the first set and all the successive sets.
@@ -230,7 +230,7 @@ class StrictRedis:
         src_set.intersection_update(self.smembers(key))
     return src_set
 
-  def rc_sinterstore(self, dst, src, *args):
+  def _rc_sinterstore(self, dst, src, *args):
     """
     Store the difference of sets ``src``,  ``args`` into a new
     set named ``dest``.  Returns the number of keys in the new set.
@@ -240,7 +240,7 @@ class StrictRedis:
       return self.sadd(dst, *list(result))
     return 0
 
-  def rc_smove(self, src, dst, value):
+  def _rc_smove(self, src, dst, value):
     """
     Move ``value`` from set ``src`` to set ``dst``
     not atomic
@@ -249,7 +249,7 @@ class StrictRedis:
       return bool(self.sadd(dst, value))
     return False
 
-  def rc_sunion(self, src, *args):
+  def _rc_sunion(self, src, *args):
     """
     Returns the members of the set resulting from the union between
     the first set and all the successive sets.
@@ -260,7 +260,7 @@ class StrictRedis:
         src_set.update(self.smembers(key))
     return src_set
 
-  def rc_sunionstore(self, dst, src, *args):
+  def _rc_sunionstore(self, dst, src, *args):
     """
     Store the union of sets ``src``,  ``args`` into a new
     set named ``dest``.  Returns the number of keys in the new set.
@@ -270,18 +270,18 @@ class StrictRedis:
       return self.sadd(dst, *list(result))
     return 0
   
-  def rc_mset(self, mapping):
+  def _rc_mset(self, mapping):
     "Sets each key in the ``mapping`` dict to its corresponding value"
     result = True
     for k, v in iteritems(mapping):
       result = True and self.set(k, v)
     return result
   
-  def rc_msetnx(self, mapping):
+  def _rc_msetnx(self, mapping):
     """
     Sets each key in the ``mapping`` dict to its corresponding value if
     none of the keys are already set
-    """    
+    """
     for k, v in iteritems(mapping):
       if self.exists(k): return False
     result = True
@@ -289,7 +289,7 @@ class StrictRedis:
       result = result and self.set(k, v)
     return result
   
-  def rc_mget(self, *args):
+  def _rc_mget(self, *args):
     """
     Returns a list of values ordered identically to ``*args``
     """

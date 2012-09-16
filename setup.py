@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 from rediscluster import __version__
 
 try:
@@ -17,9 +16,11 @@ except LookupError:
 func = lambda name, enc = ascii: {True: enc}.get(name == 'mbcs')
 codecs.register(func)
 
-f = open(os.path.join(os.path.dirname(__file__), 'README.md'))
-long_description = f.read()
-f.close()
+with open('README.rst') as f:
+  long_description = f.read()
+
+with open('LICENSE') as f:
+  license = f.read()
 
 setup(
     name='rediscluster',
@@ -36,8 +37,8 @@ setup(
     author_email='me@salimane.com',
     maintainer='Salimane Adjao Moustapha',
     maintainer_email='me@salimane.com',
-    keywords=['Redis Cluster', 'Redis', 'cluster of key-value store'],
-    license='MIT',
+    keywords=['rediscluster', 'redis', 'nosql', 'cluster', 'key value'],
+    license=license,
     packages=['rediscluster'],
     test_suite='tests.all_tests',
     classifiers=[

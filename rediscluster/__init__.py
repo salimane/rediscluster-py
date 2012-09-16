@@ -10,7 +10,7 @@ from redis.exceptions import (
     WatchError,
 )
 
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 VERSION = tuple(map(int, __version__.split('.')))
 
 __all__ = [

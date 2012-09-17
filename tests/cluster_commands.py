@@ -2,16 +2,16 @@ from distutils.version import StrictVersion
 import unittest
 import datetime
 import time
-from tests import config
 import binascii
 
 from redis._compat import (unichr, u, b, ascii_letters, iteritems, dictkeys,
                            dictvalues)
 from redis.client import parse_info
 import rediscluster
+from tests import config
 
-class ServerCommandsTestCase(unittest.TestCase):
-    def get_client(self, cls=rediscluster.StrictRedis):
+class ClusterCommandsTestCase(unittest.TestCase):
+    def get_client(self, cls=rediscluster.StrictRedisCluster):
       return cls(cluster=config.cluster, db=4)
 
     def setUp(self):
@@ -1538,13 +1538,13 @@ class ServerCommandsTestCase(unittest.TestCase):
           [b('vodka'), b('milk'), b('gin'), b('apple juice')])
 
     def test_strict_zadd(self):
-      client = self.get_client(rediscluster.StrictRedis)
+      client = self.get_client(rediscluster.StrictRedisCluster)
       client.zadd('a', 1.0, 'a1', 2.0, 'a2', a3=3.0)
       self.assertEquals(client.zrange('a', 0, 3, withscores=True),
                         [(b('a1'), 1.0), (b('a2'), 2.0), (b('a3'), 3.0)])
 
     def test_strict_lrem(self):
-      client = self.get_client(rediscluster.StrictRedis)
+      client = self.get_client(rediscluster.StrictRedisCluster)
       client.rpush('a', 'a1')
       client.rpush('a', 'a2')
       client.rpush('a', 'a3')
@@ -1554,14 +1554,14 @@ class ServerCommandsTestCase(unittest.TestCase):
 
     def test_strict_setex(self):
       "SETEX swaps the order of the value and timeout"
-      client = self.get_client(rediscluster.StrictRedis)
+      client = self.get_client(rediscluster.StrictRedisCluster)
       self.assertEquals(client.setex('a', 60, '1'), True)
       self.assertEquals(client.get('a'), b('1'))
       self.assertEquals(client.ttl('a'), 60)
 
     def test_strict_expire(self):
       "TTL is -1 by default in StrictRedis"
-      client = self.get_client(rediscluster.StrictRedis)
+      client = self.get_client(rediscluster.StrictRedisCluster)
       self.assertEquals(client.expire('a', 10), False)
       self.client['a'] = 'foo'
       self.assertEquals(client.expire('a', 10), True)

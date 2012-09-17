@@ -67,7 +67,7 @@ Getting Started
     ...                        },
     ...          'default_node' : 'node_1'
     ...     }
-    >>> r = rediscluster.StrictRedis(cluster=cluster, db=0)
+    >>> r = rediscluster.StrictRedisCluster(cluster=cluster, db=0)
     >>> r.set('foo', 'bar')
     True
     >>> r.get('foo')

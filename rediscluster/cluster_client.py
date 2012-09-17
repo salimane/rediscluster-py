@@ -3,9 +3,9 @@ import redis
 import binascii
 from redis._compat import (b, iteritems, dictvalues)
 
-class StrictRedis:
+class StrictRedisCluster:
   """
-  Implementation of the Redis Cluster Client using redis.StrictRedis
+  Implementation of the Redis Cluster Client using redis.StrictRedisCluster
 
   This abstract class provides a Python interface to all Redis commands on the cluster of redis servers.
   and implementing how the commands are sent to and received from the cluster.
@@ -121,8 +121,8 @@ class StrictRedis:
     - tuple args of supplied arguments to the command.  
     """
     def function(*args, **kwargs):
-      if name not in StrictRedis._loop_keys:
-        if name in StrictRedis._tag_keys and not isinstance(args[0], list) :
+      if name not in StrictRedisCluster._loop_keys:
+        if name in StrictRedisCluster._tag_keys and not isinstance(args[0], list) :
             try:
               return getattr(self, '_rc_' + name)(*args, **kwargs)
             except AttributeError:
@@ -140,9 +140,9 @@ class StrictRedis:
         #get the node number
         node = str((abs(binascii.crc32(b(hkey)) & 0xffffffff) % self.no_servers) + 1)
         redisent = self.redises[self.cluster['default_node']]
-        if name in StrictRedis._write_keys:
+        if name in StrictRedisCluster._write_keys:
           redisent = self.redises['node_' + node]
-        elif name in StrictRedis._read_keys:
+        elif name in StrictRedisCluster._read_keys:
           redisent = self.redises[self.cluster['master_of']['node_' + node]]
   
         #Execute the command on the server    
@@ -151,7 +151,7 @@ class StrictRedis:
       else:
         result = {}
         for alias, redisent in iteritems(self.redises):
-          if name in StrictRedis._write_keys and alias not in self.cluster['master_of']:
+          if name in StrictRedisCluster._write_keys and alias not in self.cluster['master_of']:
             res = None
           else:
             res = getattr(redisent, name)(*args, **kwargs)
@@ -315,6 +315,5 @@ class StrictRedis:
     for key in args:
       result.append(self.get(key))
     return result
-  
   
   

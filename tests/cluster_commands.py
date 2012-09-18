@@ -49,7 +49,8 @@ class ClusterCommandsTestCase(unittest.TestCase):
     def test_getnodefor(self):
       self.client['bar'] = 'foo'
       node = self.client.getnodefor('bar')
-      rd = self.client.redises[dictkeys(node)[0]]
+      from redis import StrictRedis
+      rd = StrictRedis(db=4, **config.cluster['nodes'][dictkeys(node)[0]])
       self.assertEquals(self.client['bar'], rd['bar'])
 
     def test_get_and_set(self):

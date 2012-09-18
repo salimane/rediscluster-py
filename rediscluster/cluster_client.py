@@ -166,6 +166,11 @@ class StrictRedisCluster:
     return function
 
 
+  def getnodefor(self, name):
+    "Return the node where the ``name`` would land to"
+    node = 'node_' + str((abs(binascii.crc32(b(name)) & 0xffffffff) % self.no_servers) + 1)
+    return {node : self.cluster['nodes'][node]}
+
   def __setitem__(self, name, value):
     "Set the value at key ``name`` to ``value``"
     return self.set(name, value)

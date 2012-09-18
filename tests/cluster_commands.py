@@ -45,7 +45,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
       for size in dictvalues(self.client.dbsize()):
         sizeno += size
       self.assertEquals(sizeno, 2 * self.client.no_servers)
-      
+
+    def test_getnodefor(self):
+      self.client['bar'] = 'foo'
+      node = self.client.getnodefor('bar')
+      rd = self.client.redises[dictkeys(node)[0]]
+      self.assertEquals(self.client['bar'], rd['bar'])
+
     def test_get_and_set(self):
       # get and set can't be tested independently of each other
       client = self.get_client()

@@ -37,7 +37,7 @@ setup(
     author_email='me@salimane.com',
     maintainer='Salimane Adjao Moustapha',
     maintainer_email='me@salimane.com',
-    keywords=['rediscluster', 'redis', 'nosql', 'cluster', 'key value'],
+    keywords=['rediscluster', 'redis', 'nosql', 'cluster', 'key value', 'data store', 'sharding'],
     license=license,
     packages=['rediscluster'],
     test_suite='tests.all_tests',

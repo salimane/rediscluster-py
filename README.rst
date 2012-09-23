@@ -1,14 +1,14 @@
 rediscluster-py
 ===============
 
-a Python interface to a Cluster of Redis key-value store.
+a Python interface to a Cluster of Redis key-value stores.
 
 Project Goals
 -------------
 
 The goal is to be a drop in replacement of redis-py when you would like
-to shard your data into a cluster of redis servers. rediscluster-py is
-based on the awesome
+to shard your data among different Redis instances in a transparent, fast, and 
+fault tolerant way. rediscluster-py is based on the awesome
 `redis-py <https://github.com/andymccurdy/redis-py.git>`_ StrictRedis
 Api, thus the original api commands would work without problems within
 the context of a cluster of redis servers
@@ -55,15 +55,19 @@ Getting Started
 
     >>> import rediscluster
     >>> cluster = {
-    ...          'nodes' : {
+    ...          # node names
+    ...          'nodes' : { # masters
     ...                      'node_1' : {'host' : '127.0.0.1', 'port' : 63791},
     ...                      'node_2' : {'host' : '127.0.0.1', 'port' : 63792},
-    ...                      'node_5' : {'host' : '127.0.0.1', 'port' : 63795},
-    ...                      'node_6' : {'host' : '127.0.0.1', 'port' : 63796}
+    ...
+    ...                      # slaves
+    ...                      'node_3' : {'host' : '127.0.0.1', 'port' : 63793},
+    ...                      'node_4' : {'host' : '127.0.0.1', 'port' : 63794}
     ...                    },
+    ...          # replication information
     ...          'master_of' : {
-    ...                          'node_1' : 'node_6', #node_6 slaveof node_1 in redis6.conf
-    ...                          'node_2' : 'node_5'  #node_5 slaveof node_2 in redis5.conf
+    ...                          'node_1' : 'node_4', # node_4 slaveof node_1 in redis4.conf
+    ...                          'node_2' : 'node_3'  # node_3 slaveof node_2 in redis3.conf
     ...                        },
     ...          'default_node' : 'node_1'
     ...     }
@@ -73,12 +77,46 @@ Getting Started
     >>> r.get('foo')
     'bar'
 
+Cluster Configuration
+---------------------
+
+The cluster configuration is a hash that is mostly based on the idea of a node, which is simply a host:port pair
+that points to a single redis-server instance. This is to make sure it doesn’t get tied it
+to a specific host (or port).
+The advantage of this is that it is easy to add or remove nodes from 
+the system to adjust the capacity while the system is running.
+
+Read Slaves & Write Masters
+---------------------------
+
+rediscluster uses master/slave mappings stored in the cluster hash passed during instantiation to 
+transparently relay read redis commands to slaves and writes commands to masters.
+
+Partitioning Algorithm
+----------------------
+
+In order to map every given key to the appropriate Redis node, the algorithm used, based on crc32 and modulo, is :
+
+::
+    
+    (abs(binascii.crc32(<key>) & 0xffffffff) % <number of masters>) + 1
+
+
+this is used to ensure some compatibility with other languages, php in particular.
+A function ``getnodefor`` is provided to get the node a particular key will be/has been stored to.
+
+::
+
+    >>> r.getnodefor('foo')
+    {'node_2': {'host': '127.0.0.1', 'port': 63792}}
+    >>>     
+
 Tagged keys
 -----------
 
-In order to specify your own hash key (so that related keys can all land
-on a given node), you pass a list where you’d normally pass a scalar.
-The first element of the list is the key to use for the hash and the
+In order to specify your own hash key (so that related keys can all land 
+on a given node), rediscluster allows you to pass a list where you’d normally pass a scalar.
+The first element of the list is the key to use for the hash and the 
 second is the real key that should be fetched/modify:
 
 ::
@@ -87,6 +125,40 @@ second is the real key that should be fetched/modify:
 
 In that case “userinfo” is the hash key but “foo” is still the name of
 the key that is fetched from the redis node that “userinfo” hashes to.
+
+Multiple Keys Redis Commands
+----------------------------
+
+In the context of storing an application data accross many redis servers, commands taking multiple keys 
+as arguments are harder to use since, if the two keys will hash to two different 
+instances, the operation can not be performed. Fortunately, rediscluster is a little fault tolerant 
+in that it still fetches the right result for those multi keys operations as far as the client is concerned.
+To do so it processes the related involved redis servers at interface level.
+
+::
+
+    >>> r.sadd('foo', *['a1', 'a2', 'a3'])
+    3
+    >>> r.sadd('bar', *['b1', 'a2', 'b3'])
+    3
+    >>> r.sdiffstore('foobar', 'foo', 'bar')
+    2
+    >>> r.smembers('foobar')
+    set(['a1', 'a3'])
+    >>> r.getnodefor('foo')
+    {'node_2': {'host': '127.0.0.1', 'port': 63792}}
+    >>> r.getnodefor('bar')
+    {'node_1': {'host': '127.0.0.1', 'port': 63791}}
+    >>> r.getnodefor('foobar')
+    {'node_2': {'host': '127.0.0.1', 'port': 63792}}
+    >>> 
+
+Redis-Sharding & Redis-Copy
+---------------------------
+
+In order to help with moving an application with a single redis server to a cluster of redis servers
+that could take advantage of rediscluster, i wrote `redis-sharding <https://github.com/salimane/redis-tools#redis-sharding>`_ 
+and `redis-copy <https://github.com/salimane/redis-tools#redis-copy>`_
 
 Information
 -----------

@@ -25,7 +25,7 @@ with open('LICENSE') as f:
 setup(
     name='rediscluster',
     version=__version__,
-    description='Python client for Cluster of Redis key-value store',
+    description='a Python interface to a Cluster of Redis key-value store',
     long_description=long_description,
     url='http://github.com/salimane/rediscluster-py',
     download_url=('http://pypi.python.org/packages/source/r/rediscluster/rediscluster-%s.tar.gz' % __version__),

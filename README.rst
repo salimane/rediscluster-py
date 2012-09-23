@@ -95,7 +95,8 @@ transparently relay read redis commands to slaves and writes commands to masters
 Partitioning Algorithm
 ----------------------
 
-In order to map every given key to the appropriate Redis node, the algorithm used, based on crc32 and modulo, is :
+rediscluster doesn't used a consistent hashing like some other libraries. In order to map every given key to the appropriate Redis node, the algorithm used,
+based on crc32 and modulo, is :
 
 ::
     

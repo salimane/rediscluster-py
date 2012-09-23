@@ -5,7 +5,7 @@ from redis._compat import (b, iteritems, dictvalues)
 
 class StrictRedisCluster:
   """
-  Implementation of the Redis Cluster Client using redis.StrictRedisCluster
+  Implementation of the Redis Cluster Client using redis.StrictRedis
 
   This abstract class provides a Python interface to all Redis commands on the cluster of redis servers.
   and implementing how the commands are sent to and received from the cluster.

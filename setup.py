@@ -2,25 +2,25 @@
 from rediscluster import __version__
 
 try:
-  from setuptools import setup
+    from setuptools import setup
 except ImportError:
-  from distutils.core import setup
+    from distutils.core import setup
 
 # Work around mbcs bug in distutils for py3k.
 # http://bugs.python.org/issue10945
 import codecs
 try:
-  codecs.lookup('mbcs')
+    codecs.lookup('mbcs')
 except LookupError:
-  ascii = codecs.lookup('ascii')
+    ascii = codecs.lookup('ascii')
 func = lambda name, enc = ascii: {True: enc}.get(name == 'mbcs')
 codecs.register(func)
 
 with open('README.rst') as f:
-  long_description = f.read()
+    long_description = f.read()
 
 with open('LICENSE') as f:
-  license = f.read()
+    license = f.read()
 
 setup(
     name='rediscluster',
@@ -37,7 +37,8 @@ setup(
     author_email='me@salimane.com',
     maintainer='Salimane Adjao Moustapha',
     maintainer_email='me@salimane.com',
-    keywords=['rediscluster', 'redis', 'nosql', 'cluster', 'key value', 'data store', 'sharding'],
+    keywords=['rediscluster', 'redis', 'nosql', 'cluster', 'key value',
+              'data store', 'sharding'],
     license=license,
     packages=['rediscluster'],
     test_suite='tests.all_tests',
@@ -53,5 +54,5 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
-        ]
+    ]
 )

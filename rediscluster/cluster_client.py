@@ -143,14 +143,13 @@ class StrictRedisCluster:
                     args = tuple(L)
 
                 #get the node number
-                node = str((abs(binascii.crc32(
-                    b(hkey)) & 0xffffffff) % self.no_servers) + 1)
+                node = self._getnodenamefor(hkey)
                 redisent = self.redises[self.cluster['default_node']]
                 if name in StrictRedisCluster._write_keys:
-                    redisent = self.redises['node_' + node]
+                    redisent = self.redises[node]
                 elif name in StrictRedisCluster._read_keys:
                     redisent = self.redises[
-                        self.cluster['master_of']['node_' + node]]
+                        self.cluster['master_of'][node]]
 
                 #Execute the command on the server
                 return getattr(redisent, name)(*args, **kwargs)
@@ -171,11 +170,15 @@ class StrictRedisCluster:
                 return result
 
         return function
+    
+    def _getnodenamefor(self, name):
+        "Return the node name where the ``name`` would land to"
+        return 'node_' + str(
+            (abs(binascii.crc32(b(name)) & 0xffffffff) % self.no_servers) + 1)
 
     def getnodefor(self, name):
         "Return the node where the ``name`` would land to"
-        node = 'node_' + str(
-            (abs(binascii.crc32(b(name)) & 0xffffffff) % self.no_servers) + 1)
+        node = self._getnodenamefor(name)
         return {node: self.cluster['nodes'][node]}
 
     def __setitem__(self, name, value):
@@ -198,8 +201,7 @@ class StrictRedisCluster:
 
     def object(self, infotype, key):
         "Return the encoding, idletime, or refcount about the key"
-        redisent = self.redises[self.cluster['master_of']['node_' + str((
-            abs(binascii.crc32(b(key)) & 0xffffffff) % self.no_servers) + 1)]]
+        redisent = self.redises[self.cluster['master_of'][self._getnodenamefor(key)]]
         return getattr(redisent, 'object')(infotype, key)
 
     def _rc_brpoplpush(self, src, dst, timeout=0):

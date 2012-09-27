@@ -131,7 +131,7 @@ class StrictRedisCluster:
                     try:
                         return getattr(self, '_rc_' + name)(*args, **kwargs)
                     except AttributeError:
-                        raise redis.DataError("SmartRedisCluster: Command %s Not Supported (each key name has its own node)" % name)
+                        raise redis.DataError("rediscluster: Command %s Not Supported (each key name has its own node)" % name)
 
                 #get the hash key depending on tags or not
                 hkey = args[0]

@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
-import redis
 import binascii
+
+import redis
 from redis._compat import (b, iteritems, dictvalues)
 
 

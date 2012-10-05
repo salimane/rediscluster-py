@@ -93,15 +93,15 @@ class StrictRedisCluster:
         for alias, server in iteritems(cluster['nodes']):
             try:
                 self.__redis = redis.StrictRedis(db=db, **server)
-                sla = self.__redis.config_get('slaveof')['slaveof']
-                if alias in slaves and sla == '':
+		info = self.__redis.info()
+		if alias in slaves and info['role'] == 'master':
                     raise redis.DataError(
                         "rediscluster: server %s is not a slave." % (server,))
             except Exception as e:
                 #if node is slave and is down, replace its connection with its master's
                 try:
                     ms = [k for k, v in iteritems(cluster['master_of'])
-                          if v == alias and (sla != '' or cluster['nodes'][k] == cluster['nodes'][v])][0]
+			  if v == alias and (info['role'] == 'slave' or cluster['nodes'][k] == cluster['nodes'][v])][0]
                 except IndexError:
                     ms = None
 

@@ -6,9 +6,10 @@ a Python interface to a Cluster of Redis key-value stores.
 Project Goals
 -------------
 
-The goal is to be a drop in replacement of redis-py when you would like
-to shard your data among different Redis instances in a transparent, fast, and 
-fault tolerant way. rediscluster-py is based on the awesome
+The goal of ``rediscluster-py``, together with `rediscluster-php <https://github.com/salimane/rediscluster-php.git>`_, 
+is to have a consistent, compatible client libraries accross programming languages
+when sharding among different Redis instances in a transparent, fast, and 
+fault tolerant way. ``rediscluster-py`` is based on the awesome
 `redis-py <https://github.com/andymccurdy/redis-py.git>`_ StrictRedis
 Api, thus the original api commands would work without problems within
 the context of a cluster of redis servers
@@ -16,7 +17,7 @@ the context of a cluster of redis servers
 Travis CI
 ---------
 
-Currently, rediscluster-py is being tested via travis ci for python
+Currently, ``rediscluster-py`` is being tested via travis ci for python
 version 2.6, 2.7 and 3.2: |Build Status|
 
 Installation
@@ -89,13 +90,13 @@ the system to adjust the capacity while the system is running.
 Read Slaves & Write Masters
 ---------------------------
 
-rediscluster uses master/slave mappings stored in the cluster hash passed during instantiation to 
+``rediscluster`` uses master/slave mappings stored in the cluster hash passed during instantiation to 
 transparently relay read redis commands to slaves and writes commands to masters.
 
 Partitioning Algorithm
 ----------------------
 
-rediscluster doesn't used a consistent hashing like some other libraries. In order to map every given key to the appropriate Redis node, the algorithm used,
+``rediscluster`` doesn't used a consistent hashing like some other libraries. In order to map every given key to the appropriate Redis node, the algorithm used,
 based on crc32 and modulo, is :
 
 ::
@@ -112,7 +113,7 @@ A function ``getnodefor`` is provided to get the node a particular key will be/h
     {'node_2': {'host': '127.0.0.1', 'port': 63792}}
     >>>     
 
-Tagged keys
+Hash Tags
 -----------
 
 In order to specify your own hash key (so that related keys can all land 
@@ -122,10 +123,10 @@ second is the real key that should be fetched/modify:
 
 ::
 
-    >>> r.get(["userinfo", "foo"])
+    >>> r.get("bar{foo}")
 
-In that case “userinfo” is the hash key but “foo” is still the name of
-the key that is fetched from the redis node that “userinfo” hashes to.
+In that case “foo” is the hash key but “bar” is still the name of
+the key that is fetched from the redis node that “foo” hashes to.
 
 Multiple Keys Redis Commands
 ----------------------------
@@ -158,7 +159,7 @@ Redis-Sharding & Redis-Copy
 ---------------------------
 
 In order to help with moving an application with a single redis server to a cluster of redis servers
-that could take advantage of rediscluster, i wrote `redis-sharding <https://github.com/salimane/redis-tools#redis-sharding>`_ 
+that could take advantage of ``rediscluster``, i wrote `redis-sharding <https://github.com/salimane/redis-tools#redis-sharding>`_ 
 and `redis-copy <https://github.com/salimane/redis-tools#redis-copy>`_
 
 Information
@@ -171,7 +172,7 @@ Information
 Author
 ------
 
-rediscluster-py is developed and maintained by Salimane Adjao Moustapha
+``rediscluster-py`` is developed and maintained by Salimane Adjao Moustapha
 (me@salimane.com). It can be found here:
 http://github.com/salimane/rediscluster-py
 

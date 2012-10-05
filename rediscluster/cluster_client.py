@@ -3,6 +3,7 @@ import binascii
 
 import redis
 from redis._compat import (b, iteritems, dictvalues)
+from redis.client import list_or_args
 
 
 class StrictRedisCluster:
@@ -128,7 +129,13 @@ class StrictRedisCluster:
         """
         def function(*args, **kwargs):
             if name not in StrictRedisCluster._loop_keys:
-                if name in StrictRedisCluster._tag_keys and not isinstance(args[0], list):
+                try:
+                    tag_start = args[0].index('{')
+                except Exception as e:
+                    tag_start = None
+
+                # trigger error msg on banned keys unless u're using it with tagged keys e.g. "bar{zap}"
+                if name in StrictRedisCluster._tag_keys and not tag_start:
                     try:
                         return getattr(self, '_rc_' + name)(*args, **kwargs)
                     except AttributeError:
@@ -136,11 +143,11 @@ class StrictRedisCluster:
 
                 #get the hash key depending on tags or not
                 hkey = args[0]
-                #take care of tagged key names for forcing multiple keys on the same node, e.g. r.set(['userinfo', "age:uid"], value)
-                if isinstance(args[0], list):
-                    hkey = args[0][0]
+                # take care of hash tags names for forcing multiple keys on the same node, e.g. $redis -> set("bar{zap}", "bar")
+                if tag_start:
                     L = list(args)
-                    L[0] = args[0][1]
+                    hkey = L[0][tag_start + 1:-1]
+                    L[0] = L[0][0:tag_start]
                     args = tuple(L)
 
                 #get the node number
@@ -238,7 +245,8 @@ class StrictRedisCluster:
         Returns the members of the set resulting from the difference between
         the first set and all the successive sets.
         """
-        src_set = self.smembers(src)
+        args = list_or_args(src, args)
+        src_set = self.smembers(args.pop(0))
         if src_set is not set([]):
             for key in args:
                 src_set.difference_update(self.smembers(key))
@@ -249,7 +257,8 @@ class StrictRedisCluster:
         Store the difference of sets ``src``,  ``args`` into a new
         set named ``dest``.  Returns the number of keys in the new set.
         """
-        result = self.sdiff(src, *args)
+        args = list_or_args(src, args)
+        result = self.sdiff(*args)
         if result is not set([]):
             return self.sadd(dst, *list(result))
         return 0
@@ -259,7 +268,8 @@ class StrictRedisCluster:
         Returns the members of the set resulting from the difference between
         the first set and all the successive sets.
         """
-        src_set = self.smembers(src)
+        args = list_or_args(src, args)
+        src_set = self.smembers(args.pop(0))
         if src_set is not set([]):
             for key in args:
                 src_set.intersection_update(self.smembers(key))
@@ -270,7 +280,8 @@ class StrictRedisCluster:
         Store the difference of sets ``src``,  ``args`` into a new
         set named ``dest``.  Returns the number of keys in the new set.
         """
-        result = self.sinter(src, *args)
+        args = list_or_args(src, args)
+        result = self.sinter(*args)
         if result is not set([]):
             return self.sadd(dst, *list(result))
         return 0
@@ -289,7 +300,8 @@ class StrictRedisCluster:
         Returns the members of the set resulting from the union between
         the first set and all the successive sets.
         """
-        src_set = self.smembers(src)
+        args = list_or_args(src, args)
+        src_set = self.smembers(args.pop(0))
         if src_set is not set([]):
             for key in args:
                 src_set.update(self.smembers(key))
@@ -300,7 +312,8 @@ class StrictRedisCluster:
         Store the union of sets ``src``,  ``args`` into a new
         set named ``dest``.  Returns the number of keys in the new set.
         """
-        result = self.sunion(src, *args)
+        args = list_or_args(src, args)
+        result = self.sunion(*args)
         if result is not set([]):
             return self.sadd(dst, *list(result))
         return 0
@@ -325,10 +338,11 @@ class StrictRedisCluster:
             result = result and self.set(k, v)
         return result
 
-    def _rc_mget(self, *args):
+    def _rc_mget(self, keys, *args):
         """
         Returns a list of values ordered identically to ``*args``
         """
+        args = list_or_args(keys, args)
         result = []
         for key in args:
             result.append(self.get(key))

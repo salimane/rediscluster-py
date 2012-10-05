@@ -74,6 +74,16 @@ class ClusterCommandsTestCase(unittest.TestCase):
             client.get('unicode_string').decode('utf-8'),
             unicode_string)
 
+    def test_hash_tag(self):
+        self.client['bar{foo}'] = 'bar'
+        if dictvalues(self.client.getnodefor('foo')) != dictvalues(self.client.getnodefor('bar')):
+            self.assertEquals(self.client.get('bar'), None)
+        self.assertEquals(self.client['bar{foo}'], b('bar'))
+        # checking bar on the right node
+        from redis import StrictRedis
+        rd = StrictRedis(db=4, **dictvalues(self.client.getnodefor('foo'))[0])
+        self.assertEquals(rd['bar'], self.client['bar{foo}'])
+
     def test_getitem_and_setitem(self):
         self.client['a'] = 'bar'
         self.assertEquals(self.client['a'], b('bar'))
@@ -122,7 +132,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
 
     def test_info(self):
         self.client['a'] = 'foo'
-        self.client.set('b', 'foo')
+        self.client['b'] = 'bar'
         kno = 0
         knohash = {}
         for node, info in iteritems(self.client.info()):
@@ -173,9 +183,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
         del self.client['a']
         # real logic
         self.assertEquals(self.client.append('a', 'a1'), 2)
-        self.assertEquals(self.client.get('a'), b('a1'))
+        self.assertEquals(self.client['a'], b('a1'))
         self.assert_(self.client.append('a', 'a2'), 4)
-        self.assertEquals(self.client.get('a'), b('a1a2'))
+        self.assertEquals(self.client['a'], b('a1a2'))
 
     def test_getrange(self):
         self.client['a'] = 'foo'
@@ -369,19 +379,19 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(set(self.client.keys(pattern='test*')), keys)
 
     def test_mget(self):
-        self.assertEquals(self.client.mget('a', 'b'), [None, None])
+        self.assertEquals(self.client.mget(['a', 'b']), [None, None])
         self.client['a'] = '1'
         self.client['b'] = '2'
         self.client['c'] = '3'
         self.assertEquals(
-            self.client.mget('a', 'other', 'b', 'c'),
+            self.client.mget(['a', 'other', 'b', 'c']),
             [b('1'), None, b('2'), b('3')])
 
     def test_mset(self):
         d = {'a': '1', 'b': '2', 'c': '3'}
         self.assert_(self.client.mset(d))
         for k, v in iteritems(d):
-            self.assertEquals(self.client.get(k), b(v))
+            self.assertEquals(self.client[k], b(v))
 
     def test_msetnx(self):
         d = {'a': '1', 'b': '2', 'c': '3'}
@@ -796,7 +806,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # real logic
         self.make_set('b', ['b1', 'a2', 'b3'])
         self.assertEquals(
-            self.client.sdiff('a', 'b'),
+            self.client.sdiff(['a', 'b']),
             set([b('a1'), b('a3')]))
 
     def test_sdiffstore(self):
@@ -805,13 +815,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['b'] = 'b'
         self.assertRaises(
             rediscluster.ResponseError, self.client.sdiffstore,
-            'c', 'a', 'b')
+            'c', ['a', 'b'])
         del self.client['b']
         self.make_set('b', ['b1', 'a2', 'b3'])
         # dest key always gets overwritten, even if it's not a set, so don't
         # test for that
         # real logic
-        self.assertEquals(self.client.sdiffstore('c', 'a', 'b'), 2)
+        self.assertEquals(self.client.sdiffstore('c', ['a', 'b']), 2)
         self.assertEquals(self.client.smembers('c'), set([b('a1'), b('a3')]))
 
     def test_sinter(self):
@@ -819,12 +829,12 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.make_set('a', ['a1', 'a2', 'a3'])
         self.client['b'] = 'b'
         self.assertRaises(
-            rediscluster.ResponseError, self.client.sinter, 'a', 'b')
+            rediscluster.ResponseError, self.client.sinter, ['a', 'b'])
         del self.client['b']
         # real logic
         self.make_set('b', ['a1', 'b2', 'a3'])
         self.assertEquals(
-            self.client.sinter('a', 'b'),
+            self.client.sinter(['a', 'b']),
             set([b('a1'), b('a3')]))
 
     def test_sinterstore(self):
@@ -833,13 +843,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['b'] = 'b'
         self.assertRaises(
             rediscluster.ResponseError, self.client.sinterstore,
-            'c', 'a', 'b')
+            'c', ['a', 'b'])
         del self.client['b']
         self.make_set('b', ['a1', 'b2', 'a3'])
         # dest key always gets overwritten, even if it's not a set, so don't
         # test for that
         # real logic
-        self.assertEquals(self.client.sinterstore('c', 'a', 'b'), 2)
+        self.assertEquals(self.client.sinterstore('c', ['a', 'b']), 2)
         self.assertEquals(self.client.smembers('c'), set([b('a1'), b('a3')]))
 
     def test_sismember(self):
@@ -945,12 +955,12 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.make_set('a', ['a1', 'a2', 'a3'])
         self.client['b'] = 'b'
         self.assertRaises(
-            rediscluster.ResponseError, self.client.sunion, 'a', 'b')
+            rediscluster.ResponseError, self.client.sunion, ['a', 'b'])
         del self.client['b']
         # real logic
         self.make_set('b', ['a1', 'b2', 'a3'])
         self.assertEquals(
-            self.client.sunion('a', 'b'),
+            self.client.sunion(['a', 'b']),
             set([b('a1'), b('a2'), b('a3'), b('b2')]))
 
     def test_sunionstore(self):
@@ -959,13 +969,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['b'] = 'b'
         self.assertRaises(
             rediscluster.ResponseError, self.client.sunionstore,
-            'c', 'a', 'b')
+            'c', ['a', 'b'])
         del self.client['b']
         self.make_set('b', ['a1', 'b2', 'a3'])
         # dest key always gets overwritten, even if it's not a set, so don't
         # test for that
         # real logic
-        self.assertEquals(self.client.sunionstore('c', 'a', 'b'), 4)
+        self.assertEquals(self.client.sunionstore('c', ['a', 'b']), 4)
         self.assertEquals(
             self.client.smembers('c'),
             set([b('a1'), b('a2'), b('a3'), b('b2')]))
@@ -985,7 +995,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # key is not a zset
         self.client['a'] = 'a'
         self.assertRaises(rediscluster.ResponseError, self.client.zcard, 'a')
-        self.client.delete('a')
+        del self.client['a']
         # real logic
         self.make_zset('a', {'a1': 1, 'a2': 2, 'a3': 3})
         self.assertEquals(self.client.zcard('a'), 3)
@@ -1053,7 +1063,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['a'] = 'a'
         self.assertRaises(
             rediscluster.ResponseError, self.client.zrange, 'a', 0, 1)
-        self.client.delete('a')
+        del self.client['a']
         # real logic
         self.make_zset('a', {'a1': 1, 'a2': 2, 'a3': 3})
         self.assertEquals(self.client.zrange('a', 0, 1), [b('a1'), b('a2')])
@@ -1321,13 +1331,14 @@ class ClusterCommandsTestCase(unittest.TestCase):
         d = {'a': 1, 'b': 2, 'c': 3}
         self.assert_(self.client.hmset('foo', d))
         self.assertEqual(
-            self.client.hmget('foo', 'a', 'b', 'c'), [b('1'), b('2'), b('3')])
-        self.assertEqual(self.client.hmget('foo', 'a', 'c'), [b('1'), b('3')])
+            self.client.hmget('foo', ['a', 'b', 'c']), [b('1'), b('2'), b('3')])
+        self.assertEqual(
+            self.client.hmget('foo', ['a', 'c']), [b('1'), b('3')])
         # using *args type args
         self.assertEquals(self.client.hmget('foo', 'a', 'c'), [b('1'), b('3')])
 
     def test_hmget_empty(self):
-        self.assertEqual(self.client.hmget('foo', 'a', 'b'), [None, None])
+        self.assertEqual(self.client.hmget('foo', ['a', 'b']), [None, None])
 
     def test_hmget_no_keys(self):
         self.assertRaises(
@@ -1482,9 +1493,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        self.client.set('score:1', 8)
-        self.client.set('score:2', 3)
-        self.client.set('score:3', 5)
+        self.client['score:1'] = 8
+        self.client['score:2'] = 3
+        self.client['score:3'] = 5
         self.make_list('a_values', '123')
         self.assertEquals(
             self.client.sort('a_values', by='score:*'),
@@ -1496,9 +1507,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        self.client.set('user:1', 'u1')
-        self.client.set('user:2', 'u2')
-        self.client.set('user:3', 'u3')
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
         self.make_list('a', '231')
         self.assertEquals(
             self.client.sort('a', get='user:*'),
@@ -1510,9 +1521,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        self.client.set('user:1', 'u1')
-        self.client.set('user:2', 'u2')
-        self.client.set('user:3', 'u3')
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
         self.make_list('a', '231')
         self.assertEquals(
             self.client.sort('a', get=('user:*', '#')),
@@ -1604,7 +1615,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         "SETEX swaps the order of the value and timeout"
         client = self.get_client(rediscluster.StrictRedisCluster)
         self.assertEquals(client.setex('a', 60, '1'), True)
-        self.assertEquals(client.get('a'), b('1'))
+        self.assertEquals(client['a'], b('1'))
         self.assertEquals(client.ttl('a'), 60)
 
     def test_strict_expire(self):

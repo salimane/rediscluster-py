@@ -43,9 +43,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['a'] = 'foo'
         self.client['b'] = 'foo'
         sizeno = 0
-        for size in dictvalues(self.client.dbsize()):
-            sizeno += size
-        self.assertEquals(sizeno, 2 * self.client.no_servers)
+        sizehash = {}
+        for node, size in iteritems(self.client.dbsize()):
+            if size and ((self.client.cluster['nodes'][node]['host'] + str(self.client.cluster['nodes'][node]['port'])) not in sizehash):
+                sizeno += size
+                sizehash[self.client.cluster['nodes'][node]['host']
+                         + str(self.client.cluster['nodes'][node]['port'])] = size
+        self.assertEquals(sizeno, 2 * len(sizehash))
 
     def test_getnodefor(self):
         self.client['bar'] = 'foo'
@@ -120,13 +124,18 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['a'] = 'foo'
         self.client.set('b', 'foo')
         kno = 0
-        for info in dictvalues(self.client.info()):
+        knohash = {}
+        for node, info in iteritems(self.client.info()):
             self.assert_(isinstance(info, dict))
             try:
-                kno += info['db4']['keys']
+                k = info['db4']['keys']
+                if k and ((self.client.cluster['nodes'][node]['host'] + str(self.client.cluster['nodes'][node]['port'])) not in knohash):
+                    kno += k
+                    knohash[self.client.cluster['nodes'][node]['host']
+                            + str(self.client.cluster['nodes'][node]['port'])] = k
             except KeyError:
                 pass
-        self.assertEquals(kno, 2 * self.client.no_servers)
+        self.assertEquals(kno, 2 * len(knohash))
 
     def test_lastsave(self):
         for data in dictvalues(self.client.lastsave()):
@@ -145,7 +154,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
     def test_time(self):
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
-            if StrictVersion(version) < StrictVersion('2.6.0'):
+            if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
                     raise unittest.SkipTest()
                 except AttributeError:
@@ -222,7 +231,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
     def test_bitcount(self):
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
-            if StrictVersion(version) < StrictVersion('2.6.0'):
+            if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
                     raise unittest.SkipTest()
                 except AttributeError:

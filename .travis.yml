@@ -1,14 +1,22 @@
 language: python
+
 python:
   - "2.6"
   - "2.7"
   - "3.2"
 #  - "pypy"
-# command to install dependencies
+
 install:
   - pip install -r requirements.txt --use-mirrors
-# command to run tests
+
+before_script:
+  - sh bin/travis-init.sh
+  
+services:
+  - redis-server
+
 script: ./run_tests
+
 notifications:
   email:
     recipients: me@salimane.com

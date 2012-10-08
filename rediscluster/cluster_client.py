@@ -33,9 +33,9 @@ class StrictRedisCluster:
     _write_keys = {
         'append': 'append', 'blpop': 'blpop', 'brpop': 'brpop', 'brpoplpush': 'brpoplpush',
         'decr': 'decr', 'decrby': 'decrby', 'del': 'del', 'exists': 'exists', 'hexists': 'hexists',
-        'expire': 'expire', 'expireat': 'expireat', 'getset': 'getset', 'hdel': 'hdel',
-        'hincrby': 'hincrby', 'hset': 'hset', 'hsetnx': 'hsetnx', 'hmset': 'hmset',
-        'incr': 'incr', 'incrby': 'incrby', 'linsert': 'linsert', 'lpop': 'lpop',
+        'expire': 'expire', 'expireat': 'expireat', 'pexpire': 'pexpire', 'pexpireat': 'pexpireat', 'getset': 'getset', 'hdel': 'hdel',
+        'hincrby': 'hincrby', 'hincrbyfloat': 'hincrbyfloat', 'hset': 'hset', 'hsetnx': 'hsetnx', 'hmset': 'hmset',
+        'incr': 'incr', 'incrby': 'incrby', 'incrbyfloat': 'incrbyfloat', 'linsert': 'linsert', 'lpop': 'lpop',
         'lpush': 'lpush', 'lpushx': 'lpushx', 'lrem': 'lrem', 'lset': 'lset',
         'ltrim': 'ltrim', 'move': 'move',
         'persist': 'persist', 'publish': 'publish', 'psubscribe': 'psubscribe', 'punsubscribe': 'punsubscribe',
@@ -77,7 +77,7 @@ class StrictRedisCluster:
         'flushall': 'flushall', 'flushdb': 'flushdb',
         'randomkey': 'randomkey', 'sync': 'sync',
         'config_set': 'config_set', 'config_get': 'config_get',
-        'time': 'time'
+        'time': 'time', 'client_list': 'client_list'
     }
 
     def __init__(self, cluster={}, db=0):

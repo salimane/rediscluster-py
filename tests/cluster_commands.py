@@ -319,6 +319,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('r'), None)
 
     def test_bitop_not(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
@@ -336,6 +340,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
             correct)
 
     def test_bitop_not_in_place(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
@@ -353,6 +361,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
             correct)
 
     def test_bitop_single_string(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
@@ -371,6 +383,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('res3'), test_str)
 
     def test_bitop_string_operands(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
         for info in dictvalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
@@ -1473,7 +1489,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.hincrby('a', 'a1'), 2)
         self.assertEquals(self.client.hincrby('a', 'a1', amount=2), 4)
         # negative values decrement
-        self.assertEquals(self.client.hincrby('a', 'a1', amount=-3), 1)
+        self.assertEquals(self.client.hincrby('a', 'a1', amount= -3), 1)
         # hash that exists, but key that doesn't
         self.assertEquals(self.client.hincrby('a', 'a2', amount=3), 3)
         # finally a key that's not an int

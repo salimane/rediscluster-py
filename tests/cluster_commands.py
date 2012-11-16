@@ -21,7 +21,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
 
     def tearDown(self):
         self.client.flushdb()
-        #self.client.connection_pool.disconnect()
+        # self.client.connection_pool.disconnect()
 
     def test_response_callbacks(self):
         try:
@@ -459,11 +459,29 @@ class ClusterCommandsTestCase(unittest.TestCase):
             self.client.mget(['a', 'other', 'b', 'c']),
             [b('1'), None, b('2'), b('3')])
 
+    def test_mget_hash_tag(self):
+        self.assertEquals(self.client.mget(['foo{foo}', 'bar']), [None, None])
+        self.client['foo'] = '1'
+        self.client['bar{foo}'] = '2'
+        self.client['other{foo}'] = '3'
+        self.assertEquals(
+            self.client.mget(['foo{foo}', 'c', 'bar', 'other']),
+            [b('1'), None, b('2'), b('3')])
+
     def test_mset(self):
         d = {'a': '1', 'b': '2', 'c': '3'}
         self.assert_(self.client.mset(d))
         for k, v in iteritems(d):
             self.assertEquals(self.client[k], b(v))
+
+    def test_mset_mget_hash_tag(self):
+        self.assert_(
+            self.client.mset({'foo{foo}': '1', 'bar': '2', 'other': '3'}))
+        self.assertEquals(self.client.mget(
+            ['foo{foo}', 'bar', 'other']), [b('1'), b('2'), b('3')])
+        self.assertEquals(self.client['foo'], b('1'))
+        self.assertEquals(self.client['bar{foo}'], b('2'))
+        self.assertEquals(self.client['other{foo}'], b('3'))
 
     def test_msetnx(self):
         d = {'a': '1', 'b': '2', 'c': '3'}
@@ -475,7 +493,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('d'), None)
 
     def test_randomkey(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -487,7 +505,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assert_(self.client.randomkey() in (b('a'), b('b'), b('c')))
 
     def test_rename(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -498,7 +516,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client['b'], b('1'))
 
     def test_renamenx(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -566,7 +584,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             self.client.rpush(name, i)
 
     def test_blpop(self):
-        #CLUSTER
+        # CLUSTER
         self.make_list('a', 'ab')
         self.make_list('b', 'cd')
         self.assertEquals(
@@ -962,7 +980,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             set([b('a'), b('b'), b('c')]))
 
     def test_smove(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1117,7 +1135,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.zscore('a', 'a3'), 8.0)
 
     def test_zinterstore(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1322,7 +1340,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.zscore('a', 'a4'), None)
 
     def test_zunionstore(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1489,7 +1507,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.hincrby('a', 'a1'), 2)
         self.assertEquals(self.client.hincrby('a', 'a1', amount=2), 4)
         # negative values decrement
-        self.assertEquals(self.client.hincrby('a', 'a1', amount= -3), 1)
+        self.assertEquals(self.client.hincrby('a', 'a1', amount=-3), 1)
         # hash that exists, but key that doesn't
         self.assertEquals(self.client.hincrby('a', 'a2', amount=3), 3)
         # finally a key that's not an int
@@ -1563,7 +1581,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
 
     # SORT
     def test_sort_bad_key(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1576,7 +1594,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         del self.client['a']
 
     def test_sort_basic(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1587,7 +1605,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('1'), b('2'), b('3'), b('4')])
 
     def test_sort_limited(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1598,7 +1616,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('2'), b('3')])
 
     def test_sort_by(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1612,7 +1630,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('2'), b('3'), b('1')])
 
     def test_sort_get(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1626,7 +1644,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('u1'), b('u2'), b('u3')])
 
     def test_sort_get_multi(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1640,7 +1658,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('u1'), b('1'), b('u2'), b('2'), b('u3'), b('3')])
 
     def test_sort_desc(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1651,7 +1669,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('3'), b('2'), b('1')])
 
     def test_sort_alpha(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1662,7 +1680,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('a'), b('b'), b('c'), b('d'), b('e')])
 
     def test_sort_store(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1674,7 +1692,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('1'), b('2'), b('3')])
 
     def test_sort_all_options(self):
-        #CLUSTER
+        # CLUSTER
         try:
             raise unittest.SkipTest()
         except AttributeError:
@@ -1755,7 +1773,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(client.persist('a'), True)
         self.assertEquals(client.pttl('a'), -1)
 
-    ## BINARY SAFE
+    # # BINARY SAFE
     # TODO add more tests
     def test_binary_get_set(self):
         self.assertTrue(self.client.set(' foo bar ', '123'))
@@ -1783,7 +1801,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
                 self.assertTrue(self.client.rpush(key, c))
 
         # check that KEYS returns all the keys as they are
-        #self.assertEqual(sorted(self.client.keys('*')), sorted(dictkeys(mapping)))
+        # self.assertEqual(sorted(self.client.keys('*')), sorted(dictkeys(mapping)))
 
         # check that it is possible to get list content by key name
         for key in dictkeys(mapping):

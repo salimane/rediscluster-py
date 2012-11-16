@@ -117,13 +117,17 @@ Hash Tags
 -----------
 
 In order to specify your own hash key (so that related keys can all land 
-on a given node), rediscluster allows you to pass a list where you’d normally pass a scalar.
+on a given node), ``rediscluster`` allows you to pass a string  in the form "a{b}" where you’d normally pass a scalar.
 The first element of the list is the key to use for the hash and the 
 second is the real key that should be fetched/modify:
 
 ::
 
     >>> r.get("bar{foo}")
+    >>>
+    >>> r.mset({"bar{foo}": "bar", "foo": "foo"})
+    >>>
+    >>> r.mget(["bar{foo}", "foo"])
 
 In that case “foo” is the hash key but “bar” is still the name of
 the key that is fetched from the redis node that “foo” hashes to.

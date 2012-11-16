@@ -10,8 +10,8 @@ cluster = {
     },
     # replication information
     'master_of': {
-    'node_1': 'node_6',  # node_6 slaveof node_1 in redis6.conf
-    'node_2': 'node_5',  # node_5 slaveof node_2 in redis5.conf
+        'node_1': 'node_6',  # node_6 slaveof node_1 in redis6.conf
+        'node_2': 'node_5',  # node_5 slaveof node_2 in redis5.conf
     },
 
     'default_node': 'node_1'

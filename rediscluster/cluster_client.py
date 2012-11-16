@@ -2,7 +2,8 @@
 import binascii
 
 import redis
-from redis._compat import (b, iteritems, dictvalues)
+from redis._compat import (
+    b, iteritems, dictkeys, dictvalues, basestring, bytes)
 from redis.client import list_or_args
 
 
@@ -81,7 +82,7 @@ class StrictRedisCluster:
     }
 
     def __init__(self, cluster={}, db=0):
-        #raise exception when wrong server hash
+        # raise exception when wrong server hash
         if 'nodes' not in cluster or 'master_of' not in cluster:
             raise Exception(
                 "rediscluster: Please set a correct array of redis cluster.")
@@ -90,7 +91,7 @@ class StrictRedisCluster:
         self.no_servers = len(cluster['master_of'])
         slaves = dictvalues(cluster['master_of'])
         self.redises = {}
-        #connect to all servers
+        # connect to all servers
         for alias, server in iteritems(cluster['nodes']):
             info = {}
             try:
@@ -100,7 +101,7 @@ class StrictRedisCluster:
                     raise redis.DataError(
                         "rediscluster: server %s is not a slave." % (server,))
             except Exception as e:
-                #if node is slave and is down, replace its connection with its master's
+                # if node is slave and is down, replace its connection with its master's
                 try:
                     ms = [k for k, v in iteritems(cluster['master_of'])
                           if v == alias and (('role' in info and info['role'] == 'slave') or cluster['nodes'][k] == cluster['nodes'][v])][0]
@@ -129,28 +130,60 @@ class StrictRedisCluster:
         """
         def function(*args, **kwargs):
             if name not in StrictRedisCluster._loop_keys:
-                try:
-                    tag_start = args[0].index('{')
-                except Exception as e:
-                    tag_start = None
+                # take care of hash tags
+                tag_start = None
+                key_type = hash_tag = ''
+                # since we don't have "first item" in dict,
+                # this list is needed in order to check hash_tag in mset({"a{a}": "a", "b":"b"})
+                list_ht = []
+                if isinstance(args[0], basestring) or isinstance(args[0], bytes):
+                    key_type = 'string'
+                    list_ht.append(args[0])
+                else:
+                    if isinstance(args[0], list):
+                        key_type = 'list'
+                        list_ht.append(args[0][0])
+                    else:
+                        key_type = 'dict'
+                        list_ht = dictkeys(args[0])
 
-                # trigger error msg on banned keys unless u're using it with tagged keys e.g. "bar{zap}"
+                # check for hash tags
+                for k in list_ht:
+                    try:
+                        tag_start = k.index('{')
+                        hash_tag = k
+                        break
+                    except Exception as e:
+                        tag_start = None
+
+                # trigger error msg on tag keys unless we have hash tags e.g. "bar{zap}"
                 if name in StrictRedisCluster._tag_keys and not tag_start:
                     try:
                         return getattr(self, '_rc_' + name)(*args, **kwargs)
                     except AttributeError:
                         raise redis.DataError("rediscluster: Command %s Not Supported (each key name has its own node)" % name)
 
-                #get the hash key depending on tags or not
+                # get the hash key
                 hkey = args[0]
-                # take care of hash tags names for forcing multiple keys on the same node, e.g. $redis -> set("bar{zap}", "bar")
-                if tag_start:
+                # take care of hash tags names for forcing multiple keys on the same node,
+                # e.g. r.set("bar{zap}", "bar"), r.mget(["foo{foo}","bar"])
+                if tag_start is not None:
                     L = list(args)
-                    hkey = L[0][tag_start + 1:-1]
-                    L[0] = L[0][0:tag_start]
+                    if key_type != 'string':
+                        if key_type == 'list':
+                            hkey = L[0][0][tag_start + 1:-1]
+                            L[0][0] = L[0][0][0:tag_start]
+                        else:
+                            hkey = hash_tag[tag_start + 1:-1]
+                            L[0][hash_tag[0:tag_start]] = L[0][hash_tag]
+                            del L[0][hash_tag]
+                    else:
+                        hkey = L[0][tag_start + 1:-1]
+                        L[0] = L[0][0:tag_start]
+
                     args = tuple(L)
 
-                #get the node number
+                # get the node number
                 node = self._getnodenamefor(hkey)
                 redisent = self.redises[self.cluster['default_node']]
                 if name in StrictRedisCluster._write_keys:
@@ -159,7 +192,7 @@ class StrictRedisCluster:
                     redisent = self.redises[
                         self.cluster['master_of'][node]]
 
-                #Execute the command on the server
+                # Execute the command on the server
                 return getattr(redisent, name)(*args, **kwargs)
 
             else:

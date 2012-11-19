@@ -505,22 +505,12 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assert_(self.client.randomkey() in (b('a'), b('b'), b('c')))
 
     def test_rename(self):
-        # CLUSTER
-        try:
-            raise unittest.SkipTest()
-        except AttributeError:
-            return
         self.client['a'] = '1'
         self.assert_(self.client.rename('a', 'b'))
         self.assertEquals(self.client.get('a'), None)
         self.assertEquals(self.client['b'], b('1'))
 
     def test_renamenx(self):
-        # CLUSTER
-        try:
-            raise unittest.SkipTest()
-        except AttributeError:
-            return
         self.client['a'] = '1'
         self.client['b'] = '2'
         self.assert_(not self.client.renamenx('a', 'b'))

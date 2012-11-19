@@ -324,6 +324,8 @@ class StrictRedisCluster:
         Move ``value`` from set ``src`` to set ``dst``
         not atomic
         """
+        if self.type(dst) != "set":
+            return self.smove(src + "{" + src + "}", dst, value)
         if self.srem(src, value):
             return bool(self.sadd(dst, value))
         return False
@@ -414,7 +416,7 @@ class StrictRedisCluster:
         # Handle keys with an expire time set
         kttl = -1 if kttl is None or kttl < 0 else int(kttl)
         if kttl != -1:
-            dst.expire(dst, kttl)
+            self.expire(dst, kttl)
 
         return self.delete(src)
 

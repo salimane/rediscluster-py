@@ -970,14 +970,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
             set([b('a'), b('b'), b('c')]))
 
     def test_smove(self):
-        # CLUSTER
-        try:
-            raise unittest.SkipTest()
-        except AttributeError:
-            return
         # src key is not set
         self.make_set('b', ['b1', 'b2'])
-        self.assertEquals(self.client.smove('a', 'b', 'a1'), 0)
+        self.assertEquals(self.client.smove('a', 'b', 'a1'), False)
         # src key is not a set
         self.client['a'] = 'a'
         self.assertRaises(

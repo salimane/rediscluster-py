@@ -11,7 +11,7 @@ from redis.exceptions import (
 
 from rediscluster.cluster_client import StrictRedisCluster
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 VERSION = tuple(map(int, __version__.split('.')))
 
 __all__ = [

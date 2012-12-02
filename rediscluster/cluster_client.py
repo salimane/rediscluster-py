@@ -27,7 +27,7 @@ class StrictRedisCluster:
         'zcard': 'zcard', 'zcount': 'zcount', 'zrange': 'zrange', 'zrangebyscore': 'zrangebyscore',
         'zrank': 'zrank', 'zrevrange': 'zrevrange', 'zrevrangebyscore': 'zrevrangebyscore',
         'zrevrank': 'zrevrank', 'zscore': 'zscore',
-        'mget': 'mget', 'bitcount': 'bitcount', 'echo': 'echo', 'debug_object': 'debug_object',
+        'mget': 'mget', 'bitcount': 'bitcount', 'bitop': 'bitop', 'echo': 'echo', 'debug_object': 'debug_object',
         'substr': 'substr'
     }
 
@@ -49,7 +49,7 @@ class StrictRedisCluster:
         'watch': 'watch', 'zadd': 'zadd', 'zincrby': 'zincrby', 'zinterstore': 'zinterstore',
         'zrem': 'zrem', 'zremrangebyrank': 'zremrangebyrank', 'zremrangebyscore': 'zremrangebyscore', 'zunionstore': 'zunionstore',
         'mset': 'mset', 'msetnx': 'msetnx', 'rename': 'rename', 'renamenx': 'renamenx',
-        'del': 'del', 'delete': 'delete', 'ttl': 'ttl', 'flushall': 'flushall', 'flushdb': 'flushdb',
+        'del': 'del', 'delete': 'delete', 'ttl': 'ttl', 'pttl': 'pttl', 'flushall': 'flushall', 'flushdb': 'flushdb',
     }
 
     _dont_hash = {

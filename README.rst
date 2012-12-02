@@ -60,17 +60,7 @@ Getting Started
     ...          'nodes' : { # masters
     ...                      'node_1' : {'host' : '127.0.0.1', 'port' : 63791},
     ...                      'node_2' : {'host' : '127.0.0.1', 'port' : 63792},
-    ...
-    ...                      # slaves
-    ...                      'node_3' : {'host' : '127.0.0.1', 'port' : 63793},
-    ...                      'node_4' : {'host' : '127.0.0.1', 'port' : 63794}
-    ...                    },
-    ...          # replication information
-    ...          'master_of' : {
-    ...                          'node_1' : 'node_4', # node_4 slaveof node_1 in redis4.conf
-    ...                          'node_2' : 'node_3'  # node_3 slaveof node_2 in redis3.conf
-    ...                        },
-    ...          'default_node' : 'node_1'
+    ...                    }
     ...     }
     >>> r = rediscluster.StrictRedisCluster(cluster=cluster, db=0)
     >>> r.set('foo', 'bar')
@@ -90,8 +80,8 @@ the system to adjust the capacity while the system is running.
 Read Slaves & Write Masters
 ---------------------------
 
-``rediscluster`` uses master/slave mappings stored in the cluster hash passed during instantiation to 
-transparently relay read redis commands to slaves and writes commands to masters.
+``rediscluster`` uses the master servers stored in the cluster hash passed during instantiation to auto discover
+if any slave is attached to them. It then transparently relay read redis commands to slaves and writes commands to masters.
 
 Partitioning Algorithm
 ----------------------

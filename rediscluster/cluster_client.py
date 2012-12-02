@@ -83,49 +83,59 @@ class StrictRedisCluster:
 
     def __init__(self, cluster={}, db=0):
         # raise exception when wrong server hash
-        if 'nodes' not in cluster or 'master_of' not in cluster:
+        if 'nodes' not in cluster:
             raise Exception(
                 "rediscluster: Please set a correct array of redis cluster.")
 
         self.cluster = cluster
-        self.no_servers = len(cluster['master_of'])
+        self.no_servers = 0
         self.redises = {}
         redises_cons = {}
+        self.cluster['slaves'] = {}
 
         # connect to all servers
-        for alias, server in iteritems(cluster['nodes']):
+        for alias, server in iteritems(self.cluster['nodes']):
             server_str = str(server)
             if server_str in redises_cons:
                 self.redises[alias] = redises_cons[server_str]
             else:
-                info = {}
                 try:
-                    ms = [k for k, v in iteritems(
-                        cluster['master_of']) if v == alias][0]
-                except IndexError:
-                    ms = None
-                try:
+                    #connect to master
                     self.__redis = redis.StrictRedis(db=db, **server)
                     info = self.__redis.info()
-                    if ms is not None and info['role'] == 'master' and cluster['nodes'][ms] is not cluster['nodes'][alias]:
-                        raise redis.DataError(
-                            "rediscluster: server %s is not a slave." % (server,))
+                    if info['role'] != 'master':
+                        continue
+
+                    self.redises[alias] = self.__redis
+                    redises_cons[server_str] = self.__redis
+                    self.no_servers += 1
+
+                    #connect to slave
+                    slave_connected = False
+                    if 'connected_slaves' in info and info['connected_slaves'] > 0:
+                        slave_host, slave_port, slave_online = info[
+                            'slave0'].split(',')
+                        if slave_online == 'online':
+                            try:
+                                redis_slave = redis.StrictRedis(host=slave_host, port=int(slave_port), db=db)
+                                self.redises[alias + '_slave'] = redis_slave
+                                redises_cons[slave_host +
+                                             ':' + slave_port] = redis_slave
+                                self.cluster['slaves'][alias + '_slave'] = {
+                                    'host': slave_host, 'port': slave_port}
+                                slave_connected = True
+                            except redis.RedisError as e:
+                                pass
+                                #"RedisCluster cannot connect to: " + slave_host +':'+ slave_port
+
+                    if not slave_connected:
+                        self.redises[alias + '_slave'] = self.__redis
+                        redises_cons[server_str] = self.__redis
+                        self.cluster['slaves'][alias + '_slave'] = server
+
                 except redis.RedisError as e:
-                    # if node is slave and is down, replace its connection with its master's
-                    if ms is not None and (('role' in info and info['role'] == 'slave') or cluster['nodes'][ms] == cluster['nodes'][alias]):
-                        try:
-                            self.__redis = redis.StrictRedis(
-                                db=db, **cluster['nodes'][ms])
-                            self.__redis.info()
-                        except redis.RedisError as e:
-                            raise redis.ConnectionError("rediscluster cannot connect to: %s %s" % (cluster['nodes'][ms], e))
-
-                    else:
-                        raise redis.ConnectionError(
-                            "rediscluster cannot connect to: %s %s" % (server, e))
-
-                self.redises[alias] = self.__redis
-                redises_cons[server_str] = self.__redis
+                    raise redis.ConnectionError(
+                        "rediscluster cannot connect to: %s %s" % (server, e))
 
     def __getattr__(self, name, *args, **kwargs):
         """
@@ -190,12 +200,10 @@ class StrictRedisCluster:
 
                 # get the node number
                 node = self._getnodenamefor(hkey)
-                redisent = self.redises[self.cluster['default_node']]
                 if name in StrictRedisCluster._write_keys:
                     redisent = self.redises[node]
                 elif name in StrictRedisCluster._read_keys:
-                    redisent = self.redises[
-                        self.cluster['master_of'][node]]
+                    redisent = self.redises[node + '_slave']
 
                 # Execute the command on the server
                 return getattr(redisent, name)(*args, **kwargs)
@@ -203,7 +211,7 @@ class StrictRedisCluster:
             else:
                 result = {}
                 for alias, redisent in iteritems(self.redises):
-                    if name in StrictRedisCluster._write_keys and alias not in self.cluster['master_of']:
+                    if name in StrictRedisCluster._write_keys and alias.find('_slave') >= 0:
                         res = None
                     else:
                         res = getattr(redisent, name)(*args, **kwargs)
@@ -247,8 +255,7 @@ class StrictRedisCluster:
 
     def object(self, infotype, key):
         "Return the encoding, idletime, or refcount about the key"
-        redisent = self.redises[self.cluster['master_of'][
-            self._getnodenamefor(key)]]
+        redisent = self.redises[self._getnodenamefor(key) + '_slave']
         return getattr(redisent, 'object')(infotype, key)
 
     def _rc_brpoplpush(self, src, dst, timeout=0):

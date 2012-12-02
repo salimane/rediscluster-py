@@ -45,10 +45,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
         sizeno = 0
         sizehash = {}
         for node, size in iteritems(self.client.dbsize()):
-            if size and ((self.client.cluster['nodes'][node]['host'] + str(self.client.cluster['nodes'][node]['port'])) not in sizehash):
+            if size and not(str(self.client.cluster['nodes'][node]) in sizehash):
                 sizeno += size
-                sizehash[self.client.cluster['nodes'][node]['host']
-                         + str(self.client.cluster['nodes'][node]['port'])] = size
+                sizehash[str(self.client.cluster['nodes'][node])] = size
         self.assertEquals(sizeno, 2 * len(sizehash))
 
     def test_getnodefor(self):
@@ -144,10 +143,9 @@ class ClusterCommandsTestCase(unittest.TestCase):
             self.assert_(isinstance(info, dict))
             try:
                 k = info['db4']['keys']
-                if k and ((self.client.cluster['nodes'][node]['host'] + str(self.client.cluster['nodes'][node]['port'])) not in knohash):
+                if k and str(self.client.cluster['nodes'][node]) not in knohash:
                     kno += k
-                    knohash[self.client.cluster['nodes'][node]['host']
-                            + str(self.client.cluster['nodes'][node]['port'])] = k
+                    knohash[str(self.client.cluster['nodes'][node])] = k
             except KeyError:
                 pass
         self.assertEquals(kno, 2 * len(knohash))

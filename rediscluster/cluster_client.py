@@ -89,38 +89,43 @@ class StrictRedisCluster:
 
         self.cluster = cluster
         self.no_servers = len(cluster['master_of'])
-        slaves = dictvalues(cluster['master_of'])
         self.redises = {}
+        redises_cons = {}
+
         # connect to all servers
         for alias, server in iteritems(cluster['nodes']):
-            info = {}
-            try:
-                self.__redis = redis.StrictRedis(db=db, **server)
-                info = self.__redis.info()
-                if alias in slaves and info['role'] == 'master':
-                    raise redis.DataError(
-                        "rediscluster: server %s is not a slave." % (server,))
-            except Exception as e:
-                # if node is slave and is down, replace its connection with its master's
+            server_str = str(server)
+            if server_str in redises_cons:
+                self.redises[alias] = redises_cons[server_str]
+            else:
+                info = {}
                 try:
-                    ms = [k for k, v in iteritems(cluster['master_of'])
-                          if v == alias and (('role' in info and info['role'] == 'slave') or cluster['nodes'][k] == cluster['nodes'][v])][0]
+                    ms = [k for k, v in iteritems(
+                        cluster['master_of']) if v == alias][0]
                 except IndexError:
                     ms = None
+                try:
+                    self.__redis = redis.StrictRedis(db=db, **server)
+                    info = self.__redis.info()
+                    if ms is not None and info['role'] == 'master' and cluster['nodes'][ms] is not cluster['nodes'][alias]:
+                        raise redis.DataError(
+                            "rediscluster: server %s is not a slave." % (server,))
+                except redis.RedisError as e:
+                    # if node is slave and is down, replace its connection with its master's
+                    if ms is not None and (('role' in info and info['role'] == 'slave') or cluster['nodes'][ms] == cluster['nodes'][alias]):
+                        try:
+                            self.__redis = redis.StrictRedis(
+                                db=db, **cluster['nodes'][ms])
+                            self.__redis.info()
+                        except redis.RedisError as e:
+                            raise redis.ConnectionError("rediscluster cannot connect to: %s %s" % (cluster['nodes'][ms], e))
 
-                if ms is not None:
-                    try:
-                        self.__redis = redis.StrictRedis(
-                            db=db, **cluster['nodes'][ms])
-                        self.__redis.info()
-                    except Exception as e:
-                        raise redis.ConnectionError("rediscluster cannot connect to: %s %s" % (cluster['nodes'][ms], e))
+                    else:
+                        raise redis.ConnectionError(
+                            "rediscluster cannot connect to: %s %s" % (server, e))
 
-                else:
-                    raise redis.ConnectionError(
-                        "rediscluster cannot connect to: %s %s" % (server, e))
-
-            self.redises[alias] = self.__redis
+                self.redises[alias] = self.__redis
+                redises_cons[server_str] = self.__redis
 
     def __getattr__(self, name, *args, **kwargs):
         """
@@ -136,7 +141,7 @@ class StrictRedisCluster:
                 # since we don't have "first item" in dict,
                 # this list is needed in order to check hash_tag in mset({"a{a}": "a", "b":"b"})
                 list_ht = []
-                if isinstance(args[0], basestring) or isinstance(args[0], bytes):
+                if isinstance(args[0], (basestring, bytes)):
                     key_type = 'string'
                     list_ht.append(args[0])
                 else:

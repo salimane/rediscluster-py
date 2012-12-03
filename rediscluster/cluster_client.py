@@ -27,7 +27,7 @@ class StrictRedisCluster:
         'zcard': 'zcard', 'zcount': 'zcount', 'zrange': 'zrange', 'zrangebyscore': 'zrangebyscore',
         'zrank': 'zrank', 'zrevrange': 'zrevrange', 'zrevrangebyscore': 'zrevrangebyscore',
         'zrevrank': 'zrevrank', 'zscore': 'zscore',
-        'mget': 'mget', 'bitcount': 'bitcount', 'bitop': 'bitop', 'echo': 'echo', 'debug_object': 'debug_object',
+        'mget': 'mget', 'bitcount': 'bitcount', 'echo': 'echo', 'debug_object': 'debug_object',
         'substr': 'substr'
     }
 
@@ -38,7 +38,7 @@ class StrictRedisCluster:
         'hincrby': 'hincrby', 'hincrbyfloat': 'hincrbyfloat', 'hset': 'hset', 'hsetnx': 'hsetnx', 'hmset': 'hmset',
         'incr': 'incr', 'incrby': 'incrby', 'incrbyfloat': 'incrbyfloat', 'linsert': 'linsert', 'lpop': 'lpop',
         'lpush': 'lpush', 'lpushx': 'lpushx', 'lrem': 'lrem', 'lset': 'lset',
-        'ltrim': 'ltrim', 'move': 'move',
+        'ltrim': 'ltrim', 'move': 'move', 'bitop': 'bitop',
         'persist': 'persist', 'publish': 'publish', 'psubscribe': 'psubscribe', 'punsubscribe': 'punsubscribe',
         'rpop': 'rpop', 'rpoplpush': 'rpoplpush', 'rpush': 'rpush',
         'rpushx': 'rpushx', 'sadd': 'sadd', 'sdiff': 'sdiff', 'sdiffstore': 'sdiffstore',
@@ -88,29 +88,39 @@ class StrictRedisCluster:
                 "rediscluster: Please set a correct array of redis cluster.")
 
         self.cluster = cluster
-        self.no_servers = 0
+        self.no_servers = len(self.cluster['master_of']) if 'master_of' in self.cluster else len(self.cluster['nodes'])
+
         self.redises = {}
         redises_cons = {}
         self.cluster['slaves'] = {}
 
         # connect to all servers
         for alias, server in iteritems(self.cluster['nodes']):
+
+            if 'master_of' in self.cluster and alias not in self.cluster['master_of']:
+                continue
+
             server_str = str(server)
             if server_str in redises_cons:
-                self.redises[alias] = redises_cons[server_str]
+                self.redises[alias] = redises_cons[server_str]['master']
+                self.redises[alias +
+                             '_slave'] = redises_cons[server_str]['slave']
+                self.cluster['slaves'][alias +
+                                       '_slave'] = redises_cons[server_str]['slave_node']
             else:
                 try:
-                    #connect to master
+                    # connect to master
                     self.__redis = redis.StrictRedis(db=db, **server)
                     info = self.__redis.info()
                     if info['role'] != 'master':
-                        continue
+                        raise redis.DataError(
+                            "rediscluster: server %s is not a master." % (server,))
 
                     self.redises[alias] = self.__redis
-                    redises_cons[server_str] = self.__redis
-                    self.no_servers += 1
+                    redises_cons[server_str] = {}
+                    redises_cons[server_str]['master'] = self.redises[alias]
 
-                    #connect to slave
+                    # connect to slave
                     slave_connected = False
                     if 'connected_slaves' in info and info['connected_slaves'] > 0:
                         slave_host, slave_port, slave_online = info[
@@ -119,19 +129,23 @@ class StrictRedisCluster:
                             try:
                                 redis_slave = redis.StrictRedis(host=slave_host, port=int(slave_port), db=db)
                                 self.redises[alias + '_slave'] = redis_slave
-                                redises_cons[slave_host +
-                                             ':' + slave_port] = redis_slave
                                 self.cluster['slaves'][alias + '_slave'] = {
                                     'host': slave_host, 'port': slave_port}
+                                redises_cons[server_str][
+                                    'slave'] = self.redises[alias + '_slave']
+                                redises_cons[server_str]['slave_node'] = self.cluster['slaves'][alias + '_slave']
                                 slave_connected = True
                             except redis.RedisError as e:
                                 pass
-                                #"RedisCluster cannot connect to: " + slave_host +':'+ slave_port
+                                # "RedisCluster cannot connect to: " + slave_host +':'+ slave_port
 
                     if not slave_connected:
-                        self.redises[alias + '_slave'] = self.__redis
-                        redises_cons[server_str] = self.__redis
+                        self.redises[alias + '_slave'] = self.redises[alias]
                         self.cluster['slaves'][alias + '_slave'] = server
+                        redises_cons[server_str][
+                            'slave'] = self.redises[alias + '_slave']
+                        redises_cons[server_str]['slave_node'] = self.cluster[
+                            'slaves'][alias + '_slave']
 
                 except redis.RedisError as e:
                     raise redis.ConnectionError(

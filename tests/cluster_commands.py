@@ -140,12 +140,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
                 if k and node in self.client.cluster['nodes'] and str(self.client.cluster['nodes'][node]) not in knohash:
                     kno += k
                     knohash[str(self.client.cluster['nodes'][node])] = k
-                if k and node in self.client.cluster['slaves'] and str(self.client.cluster['slaves'][node]) not in knohash:
-                    kno += k
-                    knohash[str(self.client.cluster['slaves'][node])] = k
             except KeyError:
                 pass
-        self.assertEquals(kno, len(knohash))
+
+        self.assertEquals(kno, 2)
 
     def test_lastsave(self):
         for data in dictvalues(self.client.lastsave()):

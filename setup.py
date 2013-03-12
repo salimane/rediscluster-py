@@ -13,8 +13,8 @@ try:
     codecs.lookup('mbcs')
 except LookupError:
     ascii = codecs.lookup('ascii')
-func = lambda name, enc = ascii: {True: enc}.get(name == 'mbcs')
-codecs.register(func)
+    func = lambda name, enc = ascii: {True: enc}.get(name == 'mbcs')
+    codecs.register(func)
 
 with open('README.rst') as f:
     long_description = f.read()

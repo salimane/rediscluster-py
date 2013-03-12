@@ -28,7 +28,7 @@ class StrictRedisCluster:
         'zrank': 'zrank', 'zrevrange': 'zrevrange', 'zrevrangebyscore': 'zrevrangebyscore',
         'zrevrank': 'zrevrank', 'zscore': 'zscore',
         'mget': 'mget', 'bitcount': 'bitcount', 'echo': 'echo', 'debug_object': 'debug_object',
-        'substr': 'substr'
+        'substr': 'substr', 'keys': 'keys', 'randomkey': 'randomkey',
     }
 
     _write_keys = {
@@ -70,13 +70,25 @@ class StrictRedisCluster:
     }
 
     _loop_keys = {
-        'keys': 'keys',
+        'keys': 'keys', 'dbsize': 'dbsize',
+
         'save': 'save', 'bgsave': 'bgsave',
         'bgrewriteaof': 'bgrewriteaof',
         'dbsize': 'dbsize', 'info': 'info',
         'lastsave': 'lastsave', 'ping': 'ping',
         'flushall': 'flushall', 'flushdb': 'flushdb',
-        'randomkey': 'randomkey', 'sync': 'sync',
+        'sync': 'sync',
+        'config_set': 'config_set', 'config_get': 'config_get',
+        'time': 'time', 'client_list': 'client_list'
+    }
+
+    _loop_keys_admin = {
+        'save': 'save', 'bgsave': 'bgsave',
+        'bgrewriteaof': 'bgrewriteaof',
+        'info': 'info',
+        'lastsave': 'lastsave', 'ping': 'ping',
+        'flushall': 'flushall', 'flushdb': 'flushdb',
+        'sync': 'sync',
         'config_set': 'config_set', 'config_get': 'config_get',
         'time': 'time', 'client_list': 'client_list'
     }
@@ -223,17 +235,22 @@ class StrictRedisCluster:
                 return getattr(redisent, name)(*args, **kwargs)
 
             else:
+
+                # take care of keys that don't need to go through master and slaves redis servers
+                if name not in self._loop_keys_admin:
+                    try:
+                        return getattr(self, '_rc_' + name)(*args, **kwargs)
+                    except AttributeError:
+                        raise redis.DataError("rediscluster: Command %s Not Supported (each key name has its own node)" % name)
+
                 result = {}
                 for alias, redisent in iteritems(self.redises):
-                    if name in StrictRedisCluster._write_keys and alias.find('_slave') >= 0:
+                    if (name in StrictRedisCluster._write_keys and alias.find('_slave') >= 0) or (name in StrictRedisCluster._read_keys and alias.find('_slave') == -1):
                         res = None
                     else:
                         res = getattr(redisent, name)(*args, **kwargs)
 
-                    if name == 'keys':
-                        result.append(res)
-                    else:
-                        result[alias] = res
+                    result[alias] = res
 
                 return result
 
@@ -350,11 +367,13 @@ class StrictRedisCluster:
         Move ``value`` from set ``src`` to set ``dst``
         not atomic
         """
-        if self.type(dst) != "set":
+        if self.type(src) != b("set"):
             return self.smove(src + "{" + src + "}", dst, value)
+        if self.type(dst) != b("set"):
+            return self.smove(dst + "{" + dst + "}", src, value)
         if self.srem(src, value):
-            return bool(self.sadd(dst, value))
-        return False
+            return 1 if self.sadd(dst, value) else 0
+        return 0
 
     def _rc_sunion(self, src, *args):
         """
@@ -452,3 +471,27 @@ class StrictRedisCluster:
             return False
 
         return self.rename(src, dst)
+
+    def _rc_keys(self, pattern='*'):
+        "Returns a list of keys matching ``pattern``"
+
+        result = []
+        for alias, redisent in iteritems(self.redises):
+            if alias.find('_slave') == -1:
+                continue
+
+            result.extend(redisent.keys(pattern))
+
+        return result
+
+    def _rc_dbsize(self):
+        "Returns the number of keys in the current database"
+
+        result = 0
+        for alias, redisent in iteritems(self.redises):
+            if alias.find('_slave') == -1:
+                continue
+
+            result += redisent.dbsize()
+
+        return result

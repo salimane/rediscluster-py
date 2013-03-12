@@ -41,17 +41,8 @@ class ClusterCommandsTestCase(unittest.TestCase):
     # GENERAL SERVER COMMANDS
     def test_dbsize(self):
         self.client['a'] = 'foo'
-        self.client['b'] = 'foo'
-        sizeno = 0
-        sizehash = {}
-        for node, size in iteritems(self.client.dbsize()):
-            if size and node in self.client.cluster['nodes'] and str(self.client.cluster['nodes'][node]) not in sizehash:
-                sizeno += size
-                sizehash[str(self.client.cluster['nodes'][node])] = size
-            if size and node in self.client.cluster['slaves'] and str(self.client.cluster['slaves'][node]) not in sizehash:
-                sizeno += size
-                sizehash[str(self.client.cluster['slaves'][node])] = size
-        self.assertEquals(sizeno, 2 * len(sizehash))
+        self.client['b'] = 'bar'
+        self.assertEquals(self.client.dbsize(), 2)
 
     def test_getnodefor(self):
         self.client['bar'] = 'foo'
@@ -154,7 +145,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
                     knohash[str(self.client.cluster['slaves'][node])] = k
             except KeyError:
                 pass
-        self.assertEquals(kno, 2 * len(knohash))
+        self.assertEquals(kno, len(knohash))
 
     def test_lastsave(self):
         for data in dictvalues(self.client.lastsave()):
@@ -441,10 +432,6 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(float(self.client['a']), float(2.1))
 
     def test_keys(self):
-        try:
-            raise unittest.SkipTest()
-        except AttributeError:
-            return
         self.assertEquals(self.client.keys(), [])
         keys = set([b('test_a'), b('test_b'), b('testc')])
         for key in keys:
@@ -976,7 +963,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
     def test_smove(self):
         # src key is not set
         self.make_set('b', ['b1', 'b2'])
-        self.assertEquals(self.client.smove('a', 'b', 'a1'), False)
+        self.assertEquals(self.client.smove('a', 'b', 'a1'), 0)
         # src key is not a set
         self.client['a'] = 'a'
         self.assertRaises(

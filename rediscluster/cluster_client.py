@@ -115,9 +115,9 @@ class StrictRedisCluster:
             server_str = str(server)
             if server_str in redises_cons:
                 self.redises[alias] = redises_cons[server_str]['master']
-                self.redises[alias +
+                self.redises[alias + 
                              '_slave'] = redises_cons[server_str]['slave']
-                self.cluster['slaves'][alias +
+                self.cluster['slaves'][alias + 
                                        '_slave'] = redises_cons[server_str]['slave_node']
             else:
                 try:
@@ -410,13 +410,11 @@ class StrictRedisCluster:
         Sets each key in the ``mapping`` dict to its corresponding value if
         none of the keys are already set
         """
-        for k, v in iteritems(mapping):
+        for k in dictkeys(mapping):
             if self.exists(k):
                 return False
-        result = True
-        for k, v in iteritems(mapping):
-            result = result and self.set(k, v)
-        return result
+
+        return self._rc_mset(mapping)
 
     def _rc_mget(self, keys, *args):
         """
@@ -470,7 +468,7 @@ class StrictRedisCluster:
         if self.exists(dst):
             return False
 
-        return self.rename(src, dst)
+        return self._rc_rename(src, dst)
 
     def _rc_keys(self, pattern='*'):
         "Returns a list of keys matching ``pattern``"

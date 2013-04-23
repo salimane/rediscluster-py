@@ -98,37 +98,37 @@ class ClusterCommandsTestCase(unittest.TestCase):
             self.assert_('addr' in clients[0])
 
     def test_client_getname(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	version = self.client.info()['redis_version']
-	if StrictVersion(version) < StrictVersion('2.6.9'):
-	    try:
-		raise unittest.SkipTest()
-	    except AttributeError:
-		return
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        version = self.client.info()['redis_version']
+        if StrictVersion(version) < StrictVersion('2.6.9'):
+            try:
+                raise unittest.SkipTest()
+            except AttributeError:
+                return
 
-	name = self.client.client_getname()
-	self.assertEquals(name, None)
+        name = self.client.client_getname()
+        self.assertEquals(name, None)
 
     def test_client_setname(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	version = self.client.info()['redis_version']
-	if StrictVersion(version) < StrictVersion('2.6.9'):
-	    try:
-		raise unittest.SkipTest()
-	    except AttributeError:
-		return
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        version = self.client.info()['redis_version']
+        if StrictVersion(version) < StrictVersion('2.6.9'):
+            try:
+                raise unittest.SkipTest()
+            except AttributeError:
+                return
 
-	self.assert_(self.client.client_setname('redis_py_test'))
-	self.assertEquals(
-	    self.client.client_getname(),
-	    'redis_py_test'
-	)
+        self.assert_(self.client.client_setname('redis_py_test'))
+        self.assertEquals(
+            self.client.client_getname(),
+            'redis_py_test'
+        )
 
     def test_config_get(self):
         for data in dictvalues(self.client.config_get()):
@@ -296,18 +296,18 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assert_(self.client.ttl('b') <= 60)
 
     def test_psetex(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.assertEquals(self.client.psetex('a', 1000, 'value'), True)
-	self.assertEquals(self.client['a'], b('value'))
-	self.assert_(0 < self.client.pttl('a') <= 1000)
-	# expire given a timeelta
-	expire_at = datetime.timedelta(milliseconds=1000)
-	self.assertEquals(self.client.psetex('a', expire_at, 'value'), True)
-	self.assertEquals(self.client['a'], b('value'))
-	self.assert_(0 < self.client.pttl('a') <= 1000)
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.assertEquals(self.client.psetex('a', 1000, 'value'), True)
+        self.assertEquals(self.client['a'], b('value'))
+        self.assert_(0 < self.client.pttl('a') <= 1000)
+        # expire given a timeelta
+        expire_at = datetime.timedelta(milliseconds=1000)
+        self.assertEquals(self.client.psetex('a', expire_at, 'value'), True)
+        self.assertEquals(self.client['a'], b('value'))
+        self.assert_(0 < self.client.pttl('a') <= 1000)
 
     def test_get_set_bit(self):
         self.assertEquals(self.client.getbit('a', 5), False)
@@ -662,12 +662,12 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('1'), b('2'), b('3'), b('4')])
 
     def test_brpoplpush_empty_string(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client.lpush('a', '')
-	self.assertEquals(self.client.brpoplpush('a', 'b'), b(''))
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client.lpush('a', '')
+        self.assertEquals(self.client.brpoplpush('a', 'b'), b(''))
 
     def test_lindex(self):
         # no key
@@ -1536,7 +1536,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.hincrby('a', 'a1'), 2)
         self.assertEquals(self.client.hincrby('a', 'a1', amount=2), 4)
         # negative values decrement
-	self.assertEquals(self.client.hincrby('a', 'a1', amount= -3), 1)
+        self.assertEquals(self.client.hincrby('a', 'a1', amount=-3), 1)
         # hash that exists, but key that doesn't
         self.assertEquals(self.client.hincrby('a', 'a2', amount=3), 3)
         # finally a key that's not an int
@@ -1687,73 +1687,73 @@ class ClusterCommandsTestCase(unittest.TestCase):
             [b('u1'), b('1'), b('u2'), b('2'), b('u3'), b('3')])
 
     def test_sort_get_groups_two(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client['user:1'] = 'u1'
-	self.client['user:2'] = 'u2'
-	self.client['user:3'] = 'u3'
-	self.make_list('a', '231')
-	self.assertEquals(
-	    self.client.sort('a', get=('user:*', '#'), groups=True),
-	    [(b('u1'), b('1')), (b('u2'), b('2')), (b('u3'), b('3'))])
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
+        self.make_list('a', '231')
+        self.assertEquals(
+            self.client.sort('a', get=('user:*', '#'), groups=True),
+            [(b('u1'), b('1')), (b('u2'), b('2')), (b('u3'), b('3'))])
 
     def test_sort_groups_string_get(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client['user:1'] = 'u1'
-	self.client['user:2'] = 'u2'
-	self.client['user:3'] = 'u3'
-	self.make_list('a', '231')
-	self.assertRaises(redis.DataError, self.client.sort, 'a',
-			  get='user:*', groups=True)
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
+        self.make_list('a', '231')
+        self.assertRaises(redis.DataError, self.client.sort, 'a',
+                          get='user:*', groups=True)
 
     def test_sort_groups_just_one_get(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client['user:1'] = 'u1'
-	self.client['user:2'] = 'u2'
-	self.client['user:3'] = 'u3'
-	self.make_list('a', '231')
-	self.assertRaises(redis.DataError, self.client.sort, 'a',
-			  get=['user:*'], groups=True)
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
+        self.make_list('a', '231')
+        self.assertRaises(redis.DataError, self.client.sort, 'a',
+                          get=['user:*'], groups=True)
 
     def test_sort_groups_no_get(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client['user:1'] = 'u1'
-	self.client['user:2'] = 'u2'
-	self.client['user:3'] = 'u3'
-	self.make_list('a', '231')
-	self.assertRaises(redis.DataError, self.client.sort, 'a', groups=True)
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
+        self.make_list('a', '231')
+        self.assertRaises(redis.DataError, self.client.sort, 'a', groups=True)
 
     def test_sort_groups_three_gets(self):
-	try:
-	    raise unittest.SkipTest()
-	except AttributeError:
-	    return
-	self.client['user:1'] = 'u1'
-	self.client['user:2'] = 'u2'
-	self.client['user:3'] = 'u3'
-	self.client['door:1'] = 'd1'
-	self.client['door:2'] = 'd2'
-	self.client['door:3'] = 'd3'
-	self.make_list('a', '231')
-	self.assertEquals(
-	    self.client.sort('a', get=('user:*', 'door:*', '#'), groups=True),
-	    [
-		(b('u1'), b('d1'), b('1')),
-		(b('u2'), b('d2'), b('2')),
-		(b('u3'), b('d3'), b('3'))
-	    ]
-	)
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['user:1'] = 'u1'
+        self.client['user:2'] = 'u2'
+        self.client['user:3'] = 'u3'
+        self.client['door:1'] = 'd1'
+        self.client['door:2'] = 'd2'
+        self.client['door:3'] = 'd3'
+        self.make_list('a', '231')
+        self.assertEquals(
+            self.client.sort('a', get=('user:*', 'door:*', '#'), groups=True),
+            [
+                (b('u1'), b('d1'), b('1')),
+                (b('u2'), b('d2'), b('2')),
+                (b('u3'), b('d3'), b('3'))
+            ]
+        )
 
     def test_sort_desc(self):
         # CLUSTER

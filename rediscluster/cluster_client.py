@@ -116,9 +116,9 @@ class StrictRedisCluster:
             server_str = str(server)
             if server_str in redises_cons:
                 self.redises[alias] = redises_cons[server_str]['master']
-                self.redises[alias + 
+                self.redises[alias +
                              '_slave'] = redises_cons[server_str]['slave']
-                self.cluster['slaves'][alias + 
+                self.cluster['slaves'][alias +
                                        '_slave'] = redises_cons[server_str]['slave_node']
             else:
                 try:
@@ -138,13 +138,14 @@ class StrictRedisCluster:
                     slave_connected = False
                     slave = {}
                     if have_master_of:
-                        slave = self.cluster['nodes'][self.cluster['master_of'][alias]]
+                        slave = self.cluster[
+                            'nodes'][self.cluster['master_of'][alias]]
                     elif 'connected_slaves' in info and info['connected_slaves'] > 0:
                         slave_host, slave_port, slave_online = info[
                             'slave0'].split(',')
                         if slave_online == 'online':
-                            slave = {'host':slave_host, 'port':slave_port}
-                    
+                            slave = {'host': slave_host, 'port': slave_port}
+
                     if slave is not {}:
                         try:
                             redis_slave = redis.StrictRedis(host=slave['host'], port=int(slave['port']), db=db)
@@ -158,7 +159,7 @@ class StrictRedisCluster:
                         except redis.RedisError as e:
                             pass
                             # "RedisCluster cannot connect to: " + slave_host +':'+ slave_port
-                    
+
                     if not slave_connected:
                         self.redises[alias + '_slave'] = self.redises[alias]
                         self.cluster['slaves'][alias + '_slave'] = server

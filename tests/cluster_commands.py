@@ -553,6 +553,84 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client['a'], b('1'))
         self.assertEquals(self.client['b'], b('2'))
 
+    def test_set_nx(self):
+        for info in dictvalues(self.client.info()):
+            version = info['redis_version']
+            if StrictVersion(version) < StrictVersion('2.6.12'):
+                try:
+                    raise unittest.SkipTest()
+                except AttributeError:
+                    return
+
+        self.assertEquals(self.client.set('foo', '1', nx=True), True)
+        self.assertEquals(self.client.set('foo', '2', nx=True), None)
+        self.assertEquals(self.client.get('foo'), b('1'))
+
+    def test_set_xx(self):
+        for info in dictvalues(self.client.info()):
+            version = info['redis_version']
+            if StrictVersion(version) < StrictVersion('2.6.12'):
+                try:
+                    raise unittest.SkipTest()
+                except AttributeError:
+                    return
+
+        self.assertEquals(self.client.set('foo', '1', xx=True), None)
+        self.assertEquals(self.client.get('foo'), None)
+        self.client.set('foo', 'bar')
+        self.assertEquals(self.client.set('foo', '2', xx=True), True)
+        self.assertEquals(self.client.get('foo'), b('2'))
+
+    def test_set_px(self):
+        for info in dictvalues(self.client.info()):
+            version = info['redis_version']
+            if StrictVersion(version) < StrictVersion('2.6.12'):
+                try:
+                    raise unittest.SkipTest()
+                except AttributeError:
+                    return
+
+        self.assertEquals(self.client.set('foo', '1', px=10000), True)
+        self.assertEquals(self.client['foo'], b('1'))
+        self.assert_(0 < self.client.pttl('foo') <= 10000)
+        self.assert_(0 < self.client.ttl('foo') <= 10)
+        # expire given a timedelta
+        expire_at = datetime.timedelta(milliseconds=1000)
+        self.assertEquals(self.client.set('foo', '1', px=expire_at), True)
+        self.assert_(0 < self.client.pttl('foo') <= 1000)
+        self.assert_(0 < self.client.ttl('foo') <= 1)
+
+    def test_set_ex(self):
+        for info in dictvalues(self.client.info()):
+            version = info['redis_version']
+            if StrictVersion(version) < StrictVersion('2.6.12'):
+                try:
+                    raise unittest.SkipTest()
+                except AttributeError:
+                    return
+
+        self.assertEquals(self.client.set('foo', '1', ex=10), True)
+        self.assertEquals(self.client.ttl('foo'), 10)
+        # expire given a timedelta
+        expire_at = datetime.timedelta(seconds=60)
+        self.assertEquals(self.client.set('foo', '1', ex=expire_at), True)
+        self.assertEquals(self.client.ttl('foo'), 60)
+
+    def test_set_multipleoptions(self):
+        for info in dictvalues(self.client.info()):
+            version = info['redis_version']
+            if StrictVersion(version) < StrictVersion('2.6.12'):
+                try:
+                    raise unittest.SkipTest()
+                except AttributeError:
+                    return
+
+        self.client['foo'] = 'val'
+        self.assertEquals(
+            self.client.set('foo', 'bar', xx=True, px=10000),
+            True)
+        self.assertEquals(self.client.ttl('foo'), 10)
+
     def test_setex(self):
         self.assertEquals(self.client.setex('a', 60, '1'), True)
         self.assertEquals(self.client['a'], b('1'))
@@ -1536,7 +1614,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.hincrby('a', 'a1'), 2)
         self.assertEquals(self.client.hincrby('a', 'a1', amount=2), 4)
         # negative values decrement
-        self.assertEquals(self.client.hincrby('a', 'a1', amount=-3), 1)
+        self.assertEquals(self.client.hincrby('a', 'a1', amount= -3), 1)
         # hash that exists, but key that doesn't
         self.assertEquals(self.client.hincrby('a', 'a2', amount=3), 3)
         # finally a key that's not an int

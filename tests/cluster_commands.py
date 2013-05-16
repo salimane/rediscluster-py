@@ -87,6 +87,17 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['a'] = 'foo'
         self.assertEquals(self.client.delete('a'), True)
 
+    def test_delete_multiple_keys(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.client['a'] = 'foo'
+        self.client['b'] = 'bar'
+        self.assertEquals(self.client.delete('a', 'b'), 2)
+        self.assertEquals(self.client.get('a'), None)
+        self.assertEquals(self.client.get('b'), None)
+
     def test_delitem(self):
         self.client['a'] = 'foo'
         del self.client['a']
@@ -1573,6 +1584,17 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.hget('a', 'a2'), b('2'))
         self.assert_(self.client.hdel('a', 'a2'))
         self.assertEquals(self.client.hget('a', 'a2'), None)
+
+    def test_hdel_multiple_keys(self):
+        try:
+            raise unittest.SkipTest()
+        except AttributeError:
+            return
+        self.make_hash('a', {'a1': 1, 'a2': 2, 'a3': 3})
+        self.assertEquals(self.client.hdel('a', 'a1', 'a2'), 2)
+        self.assertEquals(self.client.hget('a', 'a1'), None)
+        self.assertEquals(self.client.hget('a', 'a2'), None)
+        self.assertEquals(self.client.hget('a', 'a3'), b('3'))
 
     def test_hexists(self):
         # key is not a hash

@@ -93,7 +93,7 @@ class StrictRedisCluster:
         'time': 'time', 'client_list': 'client_list'
     }
 
-    def __init__(self, cluster={}, db=0):
+    def __init__(self, cluster={}, db=0, mastersonly=False):
         # raise exception when wrong server hash
         if 'nodes' not in cluster:
             raise Exception(
@@ -124,7 +124,7 @@ class StrictRedisCluster:
                 try:
                     # connect to master
                     self.__redis = redis.StrictRedis(db=db, **server)
-                    if not have_master_of:
+                    if not mastersonly and not have_master_of:
                         info = self.__redis.info()
                         if info['role'] != 'master':
                             raise redis.DataError(
@@ -137,16 +137,17 @@ class StrictRedisCluster:
                     # connect to slave
                     slave_connected = False
                     slave = {}
-                    if have_master_of:
-                        slave = self.cluster[
-                            'nodes'][self.cluster['master_of'][alias]]
-                    elif 'connected_slaves' in info and info['connected_slaves'] > 0:
-                        slave_host, slave_port, slave_online = info[
-                            'slave0'].split(',')
-                        if slave_online == 'online':
-                            slave = {'host': slave_host, 'port': slave_port}
+                    if not mastersonly:
+                        if have_master_of:
+                            slave = self.cluster[
+                                'nodes'][self.cluster['master_of'][alias]]
+                        elif 'connected_slaves' in info and info['connected_slaves'] > 0:
+                            slave_host, slave_port, slave_online = info[
+                                'slave0'].split(',')
+                            if slave_online == 'online':
+                                slave = {'host': slave_host, 'port': slave_port}
 
-                    if slave is not {}:
+                    if slave :
                         try:
                             redis_slave = redis.StrictRedis(host=slave['host'], port=int(slave['port']), db=db)
                             self.redises[alias + '_slave'] = redis_slave

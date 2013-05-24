@@ -83,6 +83,14 @@ Read Slaves & Write Masters
 ``rediscluster`` uses the master servers stored in the cluster hash passed during instantiation to auto discover
 if any slave is attached to them. It then transparently relay read redis commands to slaves and writes commands to masters.
 
+There is also support to only use masters even if read redis commands are issued, just specify it at client instantiation like :
+
+::
+
+    >>> r = rediscluster.StrictRedisCluster(cluster=cluster, db=0) # read redis commands are routed to slaves
+    >>>
+    >>> r = rediscluster.StrictRedisCluster(cluster=cluster, db=0, mastersonly=True) # read redis commands are routed to masters
+
 Partitioning Algorithm
 ----------------------
 

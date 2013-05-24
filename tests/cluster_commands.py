@@ -12,8 +12,8 @@ from tests import config
 
 
 class ClusterCommandsTestCase(unittest.TestCase):
-    def get_client(self, cls=rediscluster.StrictRedisCluster):
-        return cls(cluster=config.cluster, db=4)
+    def get_client(self, cls=rediscluster.StrictRedisCluster, mastersonly=False):
+        return cls(cluster=config.cluster, db=4, mastersonly=mastersonly)
 
     def setUp(self):
         self.client = self.get_client()
@@ -43,6 +43,13 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['a'] = 'foo'
         self.client['b'] = 'bar'
         self.assertEquals(self.client.dbsize(), 2)
+
+    def test_masters_only(self):
+        client = self.get_client(mastersonly=True)
+        for alias, server in iteritems(client.cluster['nodes']):
+            if 'master_of' in client.cluster and alias not in client.cluster['master_of']:
+                continue
+            self.assertEquals(client.cluster['nodes'][alias], client.cluster['slaves'][alias + '_slave'])
 
     def test_getnodefor(self):
         self.client['bar'] = 'foo'

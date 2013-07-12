@@ -3,7 +3,7 @@ import binascii
 
 import redis
 from redis._compat import (
-    b, iteritems, dictkeys, dictvalues, basestring, bytes)
+    b, iteritems, iterkeys, itervalues, basestring, bytes)
 from redis.client import list_or_args
 
 
@@ -196,7 +196,7 @@ class StrictRedisCluster:
                         list_ht.append(args[0][0])
                     else:
                         key_type = 'dict'
-                        list_ht = dictkeys(args[0])
+                        list_ht = iterkeys(args[0])
 
                 # check for hash tags
                 for k in list_ht:
@@ -422,7 +422,7 @@ class StrictRedisCluster:
         Sets each key in the ``mapping`` dict to its corresponding value if
         none of the keys are already set
         """
-        for k in dictkeys(mapping):
+        for k in iterkeys(mapping):
             if self.exists(k):
                 return False
 

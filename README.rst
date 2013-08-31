@@ -182,3 +182,9 @@ http://github.com/salimane/rediscluster-py
    :target: http://travis-ci.org/salimane/rediscluster-py
 .. |Drone.io Status| image:: https://drone.io/github.com/salimane/rediscluster-py/status.png
    :target: https://drone.io/github.com/salimane/rediscluster-py/latest
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/salimane/rediscluster-py/trend.png
+   :alt: Bitdeli badge
+   :target: https://bitdeli.com/free
+

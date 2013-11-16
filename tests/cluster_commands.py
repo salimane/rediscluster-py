@@ -4,8 +4,8 @@ import datetime
 import time
 import binascii
 
-from redis._compat import (unichr, u, b, ascii_letters, iteritems, dictkeys,
-                           dictvalues)
+from redis._compat import (unichr, u, b, ascii_letters, iteritems, iterkeys,
+                           itervalues)
 from redis.client import parse_info
 import rediscluster
 from tests import config
@@ -55,7 +55,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.client['bar'] = 'foo'
         node = self.client.getnodefor('bar')
         from redis import StrictRedis
-        rd = StrictRedis(db=4, **config.cluster['nodes'][dictkeys(node)[0]])
+        rd = StrictRedis(db=4, **config.cluster['nodes'][iterkeys(node)[0]])
         self.assertEquals(self.client['bar'], rd['bar'])
 
     def test_get_and_set(self):
@@ -76,12 +76,12 @@ class ClusterCommandsTestCase(unittest.TestCase):
 
     def test_hash_tag(self):
         self.client['bar{foo}'] = 'bar'
-        if dictvalues(self.client.getnodefor('foo')) != dictvalues(self.client.getnodefor('bar')):
+        if itervalues(self.client.getnodefor('foo')) != itervalues(self.client.getnodefor('bar')):
             self.assertEquals(self.client.get('bar'), None)
         self.assertEquals(self.client['bar{foo}'], b('bar'))
         # checking bar on the right node
         from redis import StrictRedis
-        rd = StrictRedis(db=4, **dictvalues(self.client.getnodefor('foo'))[0])
+        rd = StrictRedis(db=4, **itervalues(self.client.getnodefor('foo'))[0])
         self.assertEquals(rd['bar'], self.client['bar{foo}'])
 
     def test_getitem_and_setitem(self):
@@ -111,7 +111,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('a'), None)
 
     def test_client_list(self):
-        for clients in dictvalues(self.client.client_list()):
+        for clients in itervalues(self.client.client_list()):
             self.assert_(isinstance(clients[0], dict))
             self.assert_('addr' in clients[0])
 
@@ -149,19 +149,19 @@ class ClusterCommandsTestCase(unittest.TestCase):
         )
 
     def test_config_get(self):
-        for data in dictvalues(self.client.config_get()):
+        for data in itervalues(self.client.config_get()):
             self.assert_('maxmemory' in data)
             self.assert_(data['maxmemory'].isdigit())
 
     def test_config_set(self):
         self.assert_(self.client.config_set('timeout', '868'))
-        for data in dictvalues(self.client.config_get()):
+        for data in itervalues(self.client.config_get()):
             self.assertEquals(
                 data['timeout'],
                 '868'
             )
         self.assert_(self.client.config_set('timeout', '300'))
-        for data in dictvalues(self.client.config_get()):
+        for data in itervalues(self.client.config_get()):
             self.assertEquals(
                 data['timeout'],
                 '300'
@@ -197,7 +197,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(kno, 2)
 
     def test_lastsave(self):
-        for data in dictvalues(self.client.lastsave()):
+        for data in itervalues(self.client.lastsave()):
             self.assert_(isinstance(data, datetime.datetime))
 
     def test_object(self):
@@ -207,18 +207,18 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.object('encoding', 'a'), b('raw'))
 
     def test_ping(self):
-        for data in dictvalues(self.client.ping()):
+        for data in itervalues(self.client.ping()):
             self.assertEquals(data, True)
 
     def test_time(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
                     raise unittest.SkipTest()
                 except AttributeError:
                     return
-        for t in dictvalues(self.client.time()):
+        for t in itervalues(self.client.time()):
             self.assertEquals(len(t), 2)
             self.assert_(isinstance(t[0], int))
             self.assert_(isinstance(t[1], int))
@@ -277,7 +277,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.ttl('b'), 60)
 
     def test_pexpire(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -293,7 +293,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.pttl('a'), -1)
 
     def test_pexpireat(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -339,7 +339,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.getbit('a', 5), True)
 
     def test_bitcount(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -364,7 +364,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.bitcount('a', 1, 1), 1)
 
     def test_bitop_not_empty_string(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
                 try:
@@ -381,7 +381,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
                 try:
@@ -402,7 +402,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
                 try:
@@ -423,7 +423,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
                 try:
@@ -445,7 +445,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             raise unittest.SkipTest()
         except AttributeError:
             return
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.0'):
                 try:
@@ -481,7 +481,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client['a'], b('7'))
 
     def test_incrbyfloat(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -572,7 +572,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client['b'], b('2'))
 
     def test_set_nx(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.12'):
                 try:
@@ -585,7 +585,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('foo'), b('1'))
 
     def test_set_xx(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.12'):
                 try:
@@ -600,7 +600,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.get('foo'), b('2'))
 
     def test_set_px(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.12'):
                 try:
@@ -619,7 +619,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assert_(0 < self.client.ttl('foo') <= 1)
 
     def test_set_ex(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.12'):
                 try:
@@ -635,7 +635,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.assertEquals(self.client.ttl('foo'), 60)
 
     def test_set_multipleoptions(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.6.12'):
                 try:
@@ -833,7 +833,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # real logic
         self.assertEqual(1, self.client.lpush('a', 'b'))
         self.assertEqual(2, self.client.lpush('a', 'a'))
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) >= StrictVersion('2.4.0'):
                 self.assertEqual(4, self.client.lpush('a', 'b', 'a'))
@@ -977,7 +977,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # real logic
         self.assertEqual(1, self.client.rpush('a', 'a'))
         self.assertEqual(2, self.client.rpush('a', 'b'))
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) >= StrictVersion('2.4.0'):
                 self.assertEqual(4, self.client.rpush('a', 'a', 'b'))
@@ -1161,7 +1161,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         self.make_set('a', 'abc')
         self.assert_(self.client.srandmember('a') in b('abc'))
 
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) >= StrictVersion('2.5.0'):
                 randoms = self.client.srandmember('a', number=2)
@@ -1652,7 +1652,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
             rediscluster.ResponseError, self.client.hincrby, 'a', 'a3')
 
     def test_hincrbyfloat(self):
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -1680,7 +1680,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # real logic
         h = {b('a1'): b('1'), b('a2'): b('2'), b('a3'): b('3')}
         self.make_hash('a', h)
-        keys = dictkeys(h)
+        keys = iterkeys(h)
         keys.sort()
         remote_keys = self.client.hkeys('a')
         remote_keys.sort()
@@ -1709,7 +1709,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
         # real logic
         h = {b('a1'): b('1'), b('a2'): b('2'), b('a3'): b('3')}
         self.make_hash('a', h)
-        vals = dictvalues(h)
+        vals = itervalues(h)
         vals.sort()
         remote_vals = self.client.hvals('a')
         remote_vals.sort()
@@ -1963,7 +1963,7 @@ class ClusterCommandsTestCase(unittest.TestCase):
 
     def test_strict_pexpire(self):
         client = self.get_client(rediscluster.StrictRedisCluster)
-        for info in dictvalues(self.client.info()):
+        for info in itervalues(self.client.info()):
             version = info['redis_version']
             if StrictVersion(version) < StrictVersion('2.5.0'):
                 try:
@@ -2006,10 +2006,10 @@ class ClusterCommandsTestCase(unittest.TestCase):
                 self.assertTrue(self.client.rpush(key, c))
 
         # check that KEYS returns all the keys as they are
-        # self.assertEqual(sorted(self.client.keys('*')), sorted(dictkeys(mapping)))
+        # self.assertEqual(sorted(self.client.keys('*')), sorted(iterkeys(mapping)))
 
         # check that it is possible to get list content by key name
-        for key in dictkeys(mapping):
+        for key in iterkeys(mapping):
             self.assertEqual(self.client.lrange(key, 0, -1),
                              mapping[key])
 

@@ -1,7 +1,9 @@
 rediscluster-py
 ===============
 
-a Python interface to a Cluster of Redis key-value stores.
+a Python interface to a Cluster(*) of Redis key-value stores.
+
+NOTE:  This client is not (yet) compatible with the Redis Cluster Spec found here:  http://redis.io/topics/cluster-spec
 
 Project Goals
 -------------
